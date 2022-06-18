@@ -1,0 +1,451 @@
+/*
+*  Steve Berley - steve@leftpropeller.com
+*  This class does the work of Data Summaries and Snapshots while summaryTask provides the job control
+*/
+public class DataSummaries implements Database.Batchable<sObject>, Database.Stateful {
+    public summaryTask st; 
+    public string comma = ', ';
+    public map<id, sObject> tallies;  // map<parent object id, summary/snapshot record>
+    public integer counter = 0;
+
+    public string querySave;
+
+    public DataSummaries(summaryTask param1) {
+        if (param1 == null ) st = new summaryTask(null);
+        else st = param1;
+    }
+ 
+
+    public Database.QueryLocator start(Database.BatchableContext BC) {
+        counter++;
+        string q = st.parentQuery;  
+        if ( st.pass == summaryTask.pass2 ) q = st.outliersQuery; 
+
+        querySave = q;
+        return Database.getQueryLocator(q);
+    }
+    
+    
+    public void execute(Database.BatchableContext BC, List<sObject> scope) {
+        if (scope == null || scope.size() == 0) return;
+        if (st.pass == summaryTask.pass2) clearFields(scope);
+        else runTallies(scope);
+    }
+    
+    
+    public void finish(Database.BatchableContext BC) {
+        if (counter > 10) return;
+
+        if ( string.isblank(st.pass) || st.pass == summaryTask.pass1 ){      
+            st.pass = summaryTask.pass2;  // if it was running the first pass, start the second.
+            // database.executebatch(new DataSummaries(st), st.batchSize); 
+            st.startDataSummaries();
+        } 
+        
+        else { 
+            st.endTask();  // once the second pass is complete, close outthe task...
+            if ( !st.runningSpecifiedTask ) summaryTask.startNow();  // call summaryTask to find and execute the next task, if there is one.
+        }
+    }
+
+    
+    @invocableMethod 
+    public static void DataSummariesInvocable(list<string> tasks){
+        // to call this from a flow - pass {!recordID} as the parameter
+        if ( tasks != null && tasks.size() > 0) {
+            for (string task : tasks){
+                summaryTask st = new summaryTask( task );
+                if ( st != null ) database.executebatch(new DataSummaries( st ), st.batchSize); 
+            }
+        }
+    }
+
+
+    public void runTallies(List<sObject> scope){
+        // scope is a parent record 
+        list<sObject> recsToUpdate = new list<sObject>();
+
+        prepareTallies(scope);  
+        map<id, list<sObject>> childMap = getChildRecords(scope);
+
+        for (sObject parent : scope){
+            List<sObject> children;
+            if ( st.EchoMode ) children = new list<sObject>{ parent };
+            else {                
+                if ( childMap == null || childMap.size() == 0 || !childMap.containsKey(parent.id) ) continue;
+                children = childMap.get(parent.id);
+            }
+
+            for (string field : st.fieldSpecs.keySet()){
+                Data_Summary_Field__c f = st.fieldSpecs.get(field);
+                string action = f.How_to_Summarize__c.toLowerCase();
+                if (action.contains('copy')) doEcho(parent, children, f, action);
+                if (action == 'count') doCount(parent, children, f);
+                if (action == 'sum') doSum(parent, children, f);
+                if (action == 'max') doMax(parent, children, f);
+                if (action == 'min') doMin(parent, children, f);
+                if (action == 'average') doAvg(parent, children, f);
+                if (action == 'oldest value') doOldestValue(parent, children, f);
+                if (action == 'newest value') doNewestValue(parent, children, f);
+                if (action == 'median') doMedian(parent, children, f);
+                if (action.tolowercase().contains('unique values')) doUniques(parent, children, f, action);
+                if (action.tolowercase().contains('standard deviation')) doStdDev(parent, children, f, action);
+                // if (action == 'set specific value') doSetValue(parent, children, f);
+            }
+            recsToUpdate.add( tallies.get(parent.id) );
+        } 
+
+        string processName = 'DataSummaries.runSummaries';
+        if (st.name != null) processName += ' [' + st.name + ']';
+        lpTools.saveList('upsert', recsToUpdate, processName);
+    }
+  
+   
+    //  --------  Analysis methods below
+
+
+    public void doEcho(sObject parent, List<sObject> children, Data_Summary_Field__c f, string action) {
+        boolean blanksToo = false;
+        if (action == 'copy (including blanks)' || action == 'copy (echo)') blanksToo = true;
+        
+        string sourceField = string.valueOf( f.get('source_field__c') );
+        Object echo = null;
+        for (sObject so : children) {
+            object fieldVal = getValue(st, so, sourceField);
+
+            if ( fieldVal != null || blanksToo) echo = fieldVal;
+            else so = clearOutField(so, sourceField);    
+        }
+        saveTally(parent.id, f.target_field__c, echo);
+    }
+    
+    
+    public void doCount(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+        integer count = 0;
+        if (children != null ) count = children.size();
+        saveTally(parent.id, f.target_field__c, count);
+    }
+    
+    
+    public void doUniques(sObject parent, List<sObject> children, Data_Summary_Field__c f, string action) {
+        if (string.isblank(action)) action = 'count unique values';
+        string sourceField = string.valueOf( f.get('source_field__c') );
+        integer count = 0;
+        set<object> uniques = new set<object>();
+        for (sObject so : children) {
+            object val = getValue(st, so, sourceField);
+            if (action.toLowerCase().contains('ignore case')) val = ((string)val).tolowercase();
+            uniques.add(val)  ;
+        }
+
+        object result;
+        if (action.toLowerCase().contains('list')) {
+            // below also removes curley braces
+            result = uniques.toString().replace('{','').replace('}','');
+        }
+        else result = uniques.size();
+        saveTally(parent.id, f.target_field__c, result);
+    }
+
+   
+    public void doSum(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+        string sourceField = string.valueOf( f.get('source_field__c') );
+
+        decimal sum = 0;
+        for (sObject so : children) sum += (decimal) getValue(st, so, sourceField);
+        saveTally(parent.id, f.target_field__c, sum);
+    }
+  
+    
+    public void doMax(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+        string sourceField = string.valueOf( f.get('source_field__c') );
+
+        object max;
+        for (sObject so : children){
+            object val = getValue(st, so, sourceField);
+            if (max == null || string.valueOf(val) > string.valueOf(max) ) max = val;
+        }
+        saveTally(parent.id, f.target_field__c, max);
+    }  
+  
+    
+    public void doMin(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+        string sourceField = string.valueOf( f.get('source_field__c') );
+
+        object min;
+        for (sObject so : children){
+            object val = getValue(st, so, sourceField);
+            if (min == null || string.valueOf(val) < string.valueOf(min) ) min = val;
+        }
+        saveTally(parent.id, f.target_field__c, min);
+    }  
+
+
+    public void doAvg(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+        string sourceField = string.valueOf( f.get('source_field__c') );
+        decimal count = 0;
+        decimal sum = 0;
+
+        for (sObject so : children){
+            if ( getValue(st, so, sourceField) != null) {
+                sum += (decimal) getValue(st, so, sourceField);
+                count++;
+            }
+        }
+
+        decimal avg = 0;
+        if ( count > 0 ) avg = sum / count;
+        saveTally(parent.id, f.target_field__c, avg);
+    } 
+
+
+    public void doOldestValue(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+        if (string.isBlank(st.childRecDateField)) return;
+        string sourceField = string.valueOf( f.get('source_field__c') );
+        date bestDate;
+        object bestValue;
+
+        for (sObject so : children){
+            date d =  test.isRunningTest() ? date.today() : (date) so.get(st.childRecDateField);
+            if ( getValue(st, so, sourceField) != null && (bestDate == null || d < bestDate)) {
+                bestDate = d;
+                bestValue = getValue(st, so, sourceField);
+            }
+        }
+        saveTally(parent.id, f.target_field__c, bestValue);
+    }    
+
+
+    public void doNewestValue(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+        if (string.isBlank(st.childRecDateField)) return;
+        string sourceField = string.valueOf( f.get('source_field__c') );
+        date bestDate;
+        object bestValue;
+
+        for (sObject so : children){
+            date d =  test.isRunningTest() ? date.today() : (date) so.get(st.childRecDateField);
+            if ( getValue(st, so, sourceField) != null && (bestDate == null || d > bestDate)) {
+                bestDate = d;
+                bestValue = getValue(st, so, sourceField);
+            }
+        }
+        saveTally(parent.id, f.target_field__c, bestValue);
+    } 
+
+    
+    public void doStdDev(sObject parent, List<sObject> children, Data_Summary_Field__c f, string action) {
+        boolean SampleApproach = false;
+        if ( !string.isBlank(action) && action.toLowerCase().contains('sample') ) SampleApproach = true;
+
+        string sourceField = string.valueOf( f.get('source_field__c') );
+
+        double sum = 0;
+        for (sObject so : children) sum += (double) getValue(st, so, sourceField) ;
+        double avg = sum / children.size();
+
+        double sumOfDiffs = 0;
+        for (sObject so : children) {
+            double diff = avg - (double) getValue(st, so, sourceField);
+            sumOfDiffs += (diff * diff);  // yes, it's hokey, but math.pow() isn't working properly
+        }
+
+        double denom = children.size();
+        if (SampleApproach) denom--;
+
+        double stdDev = 0;
+        if ( denom > 0 ){
+            stdDev = math.sqrt( sumOfDiffs / denom );
+        }
+        saveTally(parent.id, f.target_field__c, stdDev);
+    }
+
+    
+    public void doMedian(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+        if (children == null || children.size()==0) return;
+        string sourceField = string.valueOf( f.get('source_field__c') );
+        list<decimal> vals = new list<decimal>();
+
+        for (sObject so : children) {
+            vals.add( decimal.valueOf(string.valueOf(getValue(st, so, sourceField))) );
+        }
+        vals.sort();
+
+        decimal median;
+        if (vals.size() == 1) median = vals[0]; // if there's only one value it's the median
+        else {
+            integer middleVal = (integer) math.floor(vals.size()/2);
+            if ( math.mod(vals.size(), 2) == 0 ) {
+                // if there's an even number of items in the list, the median is the average of the two in the middle.  
+                // note this accounts for list indicies being zero-based
+                median = (vals[middleVal-1] + vals[middleVal] ) / 2;
+            } 
+            
+            else {
+                // if there's an odd number of items, the median is the middle element.  So if there are 5 it's element 3.
+                // note this accounts for list indicies being zero-based
+                median = vals[middleVal];
+            }           
+        }
+        saveTally(parent.id, f.target_field__c, median);
+    }  
+
+   
+    // public void doSetValue(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+    //     if ( string.isblank(f.Target_Field_Type__c) || children == null || children.size() == 0 )  return;
+    //     object val;
+
+    //     switch on f.Target_Field_Type__c.toLowerCase() {
+    //         when 'double' {
+    //             val = double.valueOf( f.get('Specific_Value_to_Set__c') );
+    //         }
+    //         when 'date' {
+    //             val = date.valueOf( f.get('Specific_Value_to_Set__c') );
+    //         }
+    //         when 'string' {
+    //             val = string.valueOf( f.get('Specific_Value_to_Set__c') );
+    //         }
+    //     }
+    //     saveTally(parent.id, f.target_field__c, val);
+    // }
+
+    //  --------  Helper methods below
+
+
+    public void prepareTallies(List<sObject> scope){
+        if (scope == null || scope.size() == 0 ) return;
+        // re-init with each new batch - map <parent id, tally record>
+
+        tallies = new map <id, sObject>();
+        if ( st.runSnapshots ){
+            set<id> parentRecIDs = new set<id>();
+            for (sObject parentRec : scope) parentRecIDs.add(parentRec.id);
+            string q = st.snapQuery + ' AND ' + st.relFieldSnap + ' in :parentRecIDs ';
+            
+            for (sObject so: database.query(q) ){
+                    id key = (string) so.get(st.relFieldSnap);
+
+                    if (st.echoMode) tallies.put(key, so);  // don't clear out the values when in echo mode
+                    else tallies.put(key, clearOutTargetFields(so) );
+
+                    parentRecIDs.remove(key);    
+            }
+
+            // all that remain in parentRecIDs need to have a snap record created which happens below
+            for (id parent : parentRecIDs){
+                sObject so = lpTools.genObjectRecord(st.snapObj, null);
+                so.put(st.relFieldSnap, parent);
+                so.put(st.snapDateField , st.snapDate);
+                tallies.put(parent, so );
+            }
+        } 
+        
+        else {
+            for (sObject so : scope){
+                sObject newRec = clearOutTargetFields(lpTools.genObjectRecord(st.parentObj, so.id));
+                tallies.put(so.id, newRec);
+            }
+        }
+    }
+
+    
+    public boolean isChanged(Object x, Object y){
+        boolean changed = false;
+        if ( x == null && y != null ) changed = true;
+        else if ( x != null && y == null ) changed = true;
+        else if ( x != null && y != null ) {
+            if ( x != y ) changed = true;
+        }
+        return changed;
+    }
+
+
+    public void clearFields(list<sObject> scope){
+        // let's say you're tracking the number of opps created this month on the account record.  
+        // if a given account had some created last month but none yet this month, the field 
+        // would erroneously hold a value.  this cleans those "outliers". 
+
+        for (sObject so : scope){
+            so = clearOutTargetFields(so);
+        }
+        lpTools.saveList('update', scope, 'DataSummaries.clearFields');
+    }
+
+
+    public sObject clearOutTargetFields(sObject rec){
+        for (string field : st.fieldSpecs.keySet()){
+            Data_Summary_Field__c f = st.fieldSpecs.get(field);
+            rec.put( f.target_field__c, getNull(f) );
+        }
+        return rec;
+    }
+
+
+    public sObject clearOutField(sObject rec, string fieldName){
+        if (rec == null || string.isblank(fieldName)) return null;
+        Data_Summary_Field__c f = st.fieldSpecs.get(fieldName);
+        if (f != null && !string.isBlank(f.target_field__c)) rec.put( f.target_field__c, getNull(f) ); 
+        return rec;
+    }
+
+
+    public map<id, list<sObject>> getChildRecords(List<sObject> parents){
+        // while you'd be tempted to use a parent-child query in place of this less elegant appraoch, you'd ultimately find that 
+        // Salesforce starts throwing "invalid query locator" and "Aggregate query has too many rows..." errors if the child query 
+        // yields too many rows.  So, while less elegant, the approach taken is more robust in real Salesforce.
+        set<id> parentIDs = new set<id>();
+        for (sObject so : parents) parentIDs.add(so.id);
+        
+        map<id, list<sObject>> childMap = new map<id, list<sObject>>();
+        if ( string.isBlank(st.childQuery) ) return childMap;
+        
+        for (sObject so : database.query(st.childQuery)){
+            id key = id.valueOf( (string) so.get(st.relFieldChild));
+            if ( !childMap.containsKey(key) ) childMap.put(key, new list<sObject>());
+            list<sObject> child = childMap.get(key);
+            child.add(so);
+            childMap.put( key, child );
+        }
+        return childMap;
+    }    
+
+
+    public void saveTally(id parentID, string targetField, object value){
+        if (parentID == null || targetField == null ) return;
+        sObject tally = tallies.get(parentID) ; 
+        tally.put(targetField, value);
+        tallies.put(parentID, tally);
+    }
+
+
+    public object getValue(summaryTask st, sObject so, string field){
+        string dot = '.';
+        object val;
+
+        if ( !field.contains(dot) ) {
+            string soObjName = lpTools.getSObjectName(so.id);
+            Schema.SObjectType soSchema = Schema.getGlobalDescribe().get(soObjName);
+            Map <String, Schema.SObjectField> soFields = soSchema.getDescribe().fields.getMap();
+            
+            if ( soFields.containsKey(field)) val = so.get(field);
+        }
+        else if (!string.isblank(st.childObj)) {
+            Schema.SObjectType objSchema = Schema.getGlobalDescribe().get(st.childObj);
+            Map <String, Schema.SObjectField> fieldlist = objSchema.getDescribe().fields.getMap();
+
+            Schema.SObjectField fieldSpec = fieldlist.get(st.relFieldChild).getDescribe().getSObjectField();
+            sobject relatedObj = so.getSObject(fieldSpec);
+            val = relatedObj.get(field.substringAfter(dot));
+        }
+        return val;
+    }
+
+
+    public object getNull(Data_Summary_Field__c f){
+        object nulling = null;
+        if ( string.isNotEmpty(f.How_to_Null__c) ){
+            if (f.How_to_Null__c == 'zero') nulling = 0;
+            if (f.How_to_Null__c == 'blank') nulling = '';
+        }
+        return nulling;
+    }
+}

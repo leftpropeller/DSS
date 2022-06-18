@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Frequency__c</fullName>
+    <externalId>false</externalId>
+    <label>Analysis Timeframe</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Daily - Current</fullName>
+                <default>false</default>
+                <label>Daily - Current</label>
+            </value>
+            <value>
+                <fullName>Daily - Previous</fullName>
+                <default>false</default>
+                <label>Daily - Previous</label>
+            </value>
+            <value>
+                <fullName>Monthly - Current</fullName>
+                <default>false</default>
+                <label>Monthly - Current</label>
+            </value>
+            <value>
+                <fullName>Monthly - Previous</fullName>
+                <default>false</default>
+                <label>Monthly - Previous</label>
+            </value>
+            <value>
+                <fullName>Quarterly - Current</fullName>
+                <default>false</default>
+                <label>Quarterly - Current</label>
+            </value>
+            <value>
+                <fullName>Quarterly - Previous</fullName>
+                <default>false</default>
+                <label>Quarterly - Previous</label>
+            </value>
+            <value>
+                <fullName>Yearly - Current</fullName>
+                <default>false</default>
+                <label>Yearly - Current</label>
+            </value>
+            <value>
+                <fullName>Yearly - Previous</fullName>
+                <default>false</default>
+                <label>Yearly - Previous</label>
+            </value>
+            <value>
+                <fullName>FY - Current</fullName>
+                <default>false</default>
+                <label>FY - Current</label>
+            </value>
+            <value>
+                <fullName>FY - Previous</fullName>
+                <default>false</default>
+                <label>FY - Previous</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

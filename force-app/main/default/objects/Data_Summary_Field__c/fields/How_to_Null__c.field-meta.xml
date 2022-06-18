@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>How_to_Null__c</fullName>
+    <externalId>false</externalId>
+    <formula>if ( isblank(Target_Field_Type__c), &apos;&apos;, 
+Case (Target_Field_Type__c,
+&apos;Integer&apos;, &apos;Zero&apos;,
+&apos;Double&apos;, &apos;Zero&apos;,
+&apos;Decimal&apos;, &apos;Zero&apos;,
+&apos;String&apos;, &apos;Blank&apos;,
+&apos;Null&apos;))</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>How to Null</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

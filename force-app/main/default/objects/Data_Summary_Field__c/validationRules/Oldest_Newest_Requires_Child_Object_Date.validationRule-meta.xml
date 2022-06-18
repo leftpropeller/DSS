@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Oldest_Newest_Requires_Child_Object_Date</fullName>
+    <active>true</active>
+    <description>The field Date_Field_on_Child_Record__c is required when the summary action is oldest or newest value</description>
+    <errorConditionFormula>isblank(Summary__r.Date_Field_on_Child_Record__c) &amp;&amp;
+(text(How_to_Summarize__c) = &apos;oldest value&apos; || text(How_to_Summarize__c) = &apos;newest value&apos; )</errorConditionFormula>
+    <errorDisplayField>How_to_Summarize__c</errorDisplayField>
+    <errorMessage>The field Date Field on Child Record on Data Summary record needs to be set before you can select this option.</errorMessage>
+</ValidationRule>

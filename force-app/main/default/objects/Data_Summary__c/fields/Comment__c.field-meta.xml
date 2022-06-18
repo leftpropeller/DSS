@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Comment__c</fullName>
+    <externalId>false</externalId>
+    <formula>if ( Snapshot_Mode__c , &apos;Summarizing to snapshot object: &apos; + Snapshot_Object__c, &apos;Summarizing to parent object: &apos; + Parent_Object__c ) 
++ if ( Echo_Mode__c, &apos; -- ECHO Only&apos;,&apos;&apos;)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Comment</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

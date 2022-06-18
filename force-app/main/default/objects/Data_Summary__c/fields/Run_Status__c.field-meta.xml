@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Run_Status__c</fullName>
+    <externalId>false</externalId>
+    <formula>if ( !isblank(Last_Started__c) &amp;&amp; ( isblank(Last_Completed__c) || Last_Started__c &gt; Last_Completed__c), &apos;Running&apos;, if ( Last_Started__c &lt;= Last_Completed__c, &apos;Completed&apos;, &apos;Never Run&apos; ))</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Run Status</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>
