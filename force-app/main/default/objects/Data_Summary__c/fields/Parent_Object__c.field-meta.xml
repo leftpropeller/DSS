@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Parent_Object__c</fullName>
+    <deprecated>false</deprecated>
     <externalId>false</externalId>
+    <inlineHelpText>The object that serves as the &quot;root&quot; of all data to be analyzed.  Often this will be the Contact object</inlineHelpText>
     <label>Parent Object</label>
     <length>255</length>
     <required>false</required>

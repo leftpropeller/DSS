@@ -2,7 +2,9 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Active__c</fullName>
     <defaultValue>true</defaultValue>
+    <deprecated>false</deprecated>
     <externalId>false</externalId>
+    <inlineHelpText>This acts as an on/off switch allowing you to configure and test tasks before they go live.  When you click Run Summary Now the task will run even if inactive.</inlineHelpText>
     <label>Active</label>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>

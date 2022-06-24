@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
-    <fullName>Specific_Value_to_Set__c</fullName>
-    <deprecated>false</deprecated>
+    <fullName>Target_Field_Type_display__c</fullName>
     <externalId>false</externalId>
-    <label>Specific Value to Set</label>
-    <length>255</length>
+    <formula>Target_Field_Type__c</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <inlineHelpText>The datatype of the selected target field, or an error message (automatic)</inlineHelpText>
+    <label>Target Field Type</label>
     <required>false</required>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>

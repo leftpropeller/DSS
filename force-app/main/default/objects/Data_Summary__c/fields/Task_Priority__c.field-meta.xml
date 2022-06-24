@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Task_Priority__c</fullName>
+    <deprecated>false</deprecated>
     <externalId>false</externalId>
+    <inlineHelpText>Sets the priority of the task, those with lower numbers are done sooner</inlineHelpText>
     <label>Task Priority</label>
     <required>false</required>
     <trackHistory>false</trackHistory>

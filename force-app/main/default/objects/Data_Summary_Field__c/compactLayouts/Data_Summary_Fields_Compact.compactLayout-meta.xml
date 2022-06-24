@@ -3,6 +3,6 @@
     <fullName>Data_Summary_Fields_Compact</fullName>
     <fields>Name</fields>
     <fields>Summary__c</fields>
-    <fields>Active__c</fields>
+    <fields>Field_Status__c</fields>
     <label>Data Summary Fields Compact</label>
 </CompactLayout>

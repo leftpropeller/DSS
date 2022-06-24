@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Summarize_To_Object__c</fullName>
+    <deprecated>false</deprecated>
     <externalId>false</externalId>
     <formula>if ( Summary__r.Snapshot_Mode__c = true, Summary__r.Snapshot_Object__c , Summary__r.Parent_Object__c )</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
-    <label>Summarizing To (Object)</label>
+    <inlineHelpText>The object where the summary will be stored, also set on the Summary Task</inlineHelpText>
+    <label>Summarizing To (as set on the task)</label>
     <required>false</required>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>

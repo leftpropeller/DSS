@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Batch_Size__c</fullName>
-    <defaultValue>200</defaultValue>
+    <defaultValue>50</defaultValue>
+    <deprecated>false</deprecated>
     <externalId>false</externalId>
+    <inlineHelpText>The number of records of the Parent Object that are processed at a time. In contrast, the system pulls all child records that are applicable for the selected analysis timeframe.  When in doubt, stay with the default value of 50</inlineHelpText>
     <label>Batch Size</label>
     <precision>4</precision>
     <required>false</required>

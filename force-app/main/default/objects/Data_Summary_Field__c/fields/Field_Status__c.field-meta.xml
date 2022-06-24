@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Field_Status__c</fullName>
+    <externalId>false</externalId>
+    <formula>if ( Active__c 
+&amp;&amp; !isblank(text(How_to_Summarize__c))
+&amp;&amp; !CONTAINS(Source_Field_Type__c, &apos;not found&apos;) 
+&amp;&amp; !CONTAINS(Target_Field_Type__c, &apos;not found&apos;) 
+, &apos;Ready&apos;, 
+
+if(!Active__c, &apos;Not Active&apos; +br(), &apos;&apos;)
++ if (isblank(text(How_to_Summarize__c)), &apos;No Summarization Selected&apos; +br(), &apos;&apos;)  
++ if (CONTAINS(Source_Field_Type__c, &apos;not found&apos;) , Source_Field_Type__c +br(), &apos;&apos;)  
++ if (CONTAINS(Target_Field_Type__c, &apos;not found&apos;) , Target_Field_Type__c +br(), &apos;&apos;)  
+
+
+)
+
+/*
+ Plan is to make this field analyze inputs and make sure the field specs are complete and appropriate.
+*/</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <inlineHelpText>A summary of any issues with the configuration of the field.  If all is good, it&apos;ll show &quot;Ready&quot;</inlineHelpText>
+    <label>Field Status</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

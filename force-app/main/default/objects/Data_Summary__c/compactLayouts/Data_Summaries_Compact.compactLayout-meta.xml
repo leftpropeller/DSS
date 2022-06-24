@@ -3,8 +3,9 @@
     <fullName>Data_Summaries_Compact</fullName>
     <fields>Name</fields>
     <fields>Active__c</fields>
-    <fields>Active_Fields__c</fields>
     <fields>Frequency__c</fields>
+    <fields>Active_Fields__c</fields>
+    <fields>Task_Status__c</fields>
     <fields>Last_Completed__c</fields>
     <fields>Run_Status__c</fields>
     <label>Data Summaries Compact</label>

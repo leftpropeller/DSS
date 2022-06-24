@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Task_Status__c</fullName>
+    <externalId>false</externalId>
+    <formula>if ( Active__c 
+&amp;&amp; !isblank(Parent_Object__c)
+&amp;&amp; !( isblank(Child_Object__c) &amp;&amp; isblank(Snapshot_Object__c) )
+&amp;&amp; !isblank(text(Frequency__c))
+&amp;&amp; Active_Fields__c &gt; 0
+
+&amp;&amp; if ( !isblank(Child_Object__c) &amp;&amp; (isblank(Child_Relationship_Name__c) || isblank(Relationship_Field_Child__c) ), false, true )
+
+&amp;&amp; if ( !isblank(Snapshot_Object__c) &amp;&amp; (isblank(Snapshot_Relationship_Name__c) || isblank(Relationship_Field_Snapshot__c) ), false, true )
+
+, &apos;Ready&apos;, 
+
+
+
+if(!Active__c, &apos;Not Active&apos; +br(), &apos;&apos;)
++ if (isblank(Parent_Object__c), &apos;Parent Object Required&apos; + br(), &apos;&apos; )
++ if ((isblank(Child_Object__c) &amp;&amp; isblank(Snapshot_Object__c) ), &apos;Child and/or Snapshot Object Required&apos; + br(), &apos;&apos;)
++ if (isblank(text(Frequency__c)), &apos;No Timeframe Selected&apos; +br(), &apos;&apos;)  
++ if (Active_Fields__c = 0, &apos;No Active Fields&apos; +br(), &apos;&apos;)
++ if ( !isblank(Child_Object__c) &amp;&amp; isblank(Child_Relationship_Name__c), &apos;No Child Relationship Name&apos; + br(), &apos;&apos;)
++ if ( !isblank(Child_Object__c) &amp;&amp; isblank(Relationship_Field_Child__c), &apos;No Relationship Field (on Child)&apos; + br(), &apos;&apos;)
++ if (!isblank(Snapshot_Object__c) &amp;&amp; isblank(Snapshot_Relationship_Name__c), &apos;No Snapshot Relationship Name&apos; + br(), &apos;&apos;)
++ if (!isblank(Snapshot_Object__c) &amp;&amp; isblank(Relationship_Field_Snapshot__c), &apos;No Relationship Field (on Snapshot)&apos; + br(), &apos;&apos;)
+
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <inlineHelpText>A summary of any issues with the configuration of the task.  If all is good, it&apos;ll show &quot;Ready&quot;</inlineHelpText>
+    <label>Task Status</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

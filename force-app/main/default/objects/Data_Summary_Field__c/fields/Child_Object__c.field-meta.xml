@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Child_Object__c</fullName>
+    <deprecated>false</deprecated>
     <externalId>false</externalId>
     <formula>Summary__r.Child_Object__c</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
-    <label>Child Object</label>
+    <inlineHelpText>The Child Object, as set on the Summary Task</inlineHelpText>
+    <label>Child Object (as set on the task)</label>
     <required>false</required>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>

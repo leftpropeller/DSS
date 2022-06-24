@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Where_Clause__c</fullName>
+    <deprecated>false</deprecated>
     <externalId>false</externalId>
+    <inlineHelpText>The filter to use when querying the Child Object.  Notice that it refers to fields by their API names and is described as you would in a SOQL query.  You can also filter the parent records, but need to do so from the perspective of the child object.  So if the parent is Account and the child is Contact, then you could add Account.Name = &apos;Disney&apos; to the where clause.  Finally, behind the scenes, the system adds the appropriate timeframe to your Where Clause so you needn’t include it here.</inlineHelpText>
     <label>Where Clause (filters child obj records)</label>
     <length>32768</length>
     <trackHistory>false</trackHistory>

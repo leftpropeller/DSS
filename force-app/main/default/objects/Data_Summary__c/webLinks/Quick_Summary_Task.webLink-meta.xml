@@ -4,11 +4,10 @@
     <availability>online</availability>
     <displayType>massActionButton</displayType>
     <encodingKey>UTF-8</encodingKey>
-    <height>600</height>
     <linkType>url</linkType>
-    <masterLabel>Quick Summary Task</masterLabel>
-    <openType>sidebar</openType>
+    <masterLabel>Quick Create Summary Task</masterLabel>
+    <openType>replace</openType>
     <protected>false</protected>
     <requireRowSelection>true</requireRowSelection>
-    <url>/flow/LeftProp_DSS__New_Summary_Task_Wizard</url>
+    <url>/flow/LeftProp_DSS/Quick_Create_Data_Summary_Task</url>
 </WebLink>
