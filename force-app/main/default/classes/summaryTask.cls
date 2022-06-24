@@ -18,6 +18,7 @@ public class summaryTask implements Schedulable {
     private static final string timeframeQuarterly = 'quarterly';
     private static final string timeframeYearly = 'yearly';
     private static final string timeframeFY = 'fy';
+    private static final string ready = 'Ready';
     private static final date today = date.today();
 
     public id taskID; 
@@ -46,7 +47,7 @@ public class summaryTask implements Schedulable {
     public string relFieldChild;  
     public string relFieldSnap;  
     public string whereClause;
-    public integer batchSize = 200;
+    public integer batchSize = 50;
     public string pass;
     public boolean runSnapshots = false;
     public boolean EchoMode;
@@ -142,7 +143,6 @@ public class summaryTask implements Schedulable {
     public static list<boolean> isScheduled(){
         boolean scheduled = false;
         list<AsyncApexJob> jobs = [SELECT id FROM AsyncApexJob WHERE JobType = 'ScheduledApex' AND Status = 'Queued' AND ApexClass.Name IN ('summarytask', 'LeftProp_DSS.summaryTask', 'dssTaskManager', 'LeftProp_DSS.dssTaskManager')];
-        boolean schedule = false;
         if (jobs != null && jobs.size() > 0) scheduled = true;
         return new list<boolean>{scheduled};
     }
@@ -399,15 +399,69 @@ public class summaryTask implements Schedulable {
 
 
     public string genHistoricQueryDates(){
-        if (snapDate == null || !frequency.toLowerCase().contains('month')) return '';
-        date startOfThisMonth = date.newInstance(snapDate.year(), snapDate.month(), 1);
-        string startDate = lpTools.javaDateFormat(startOfThisMonth);
-        string endDate = lpTools.javaDateFormat(startOfThisMonth.addMonths(1));
+        // this method creates the part of the where clause to account for historical dates, based on the snapDate field and frequency.
+        // it also sets the snapDate to the end of the period so data is recorded when expected
+        if (snapDate == null || string.isblank(frequency)) return '';
+        date startDate;
+        date endDate;
+        string historic = '';
+        integer prevPeriodOffsetMonths = 0;
 
-        string historic = ' AND ' + childRecDateField + space + ' >= ' + startDate;
-        historic += ' AND ' + childRecDateField + space + ' <= ' + endDate;
+        if (frequency.toLowerCase().contains('day') || frequency.toLowerCase().contains('daily')) {
+            // the simplicity of days makes them a special case.
+            date day = snapDate;
+            if (!currentTimePeriod) day = day.addDays(-1);
+            historic = ' AND ' + childRecDateField + space + ' = ' + lpTools.javaDateFormat(day);
+        }
+
+        else if (frequency.toLowerCase().contains('month')) {
+            startDate = date.newInstance(snapDate.year(), snapDate.month(), 1);
+            endDate = startDate.addMonths(1);    
+            if (!currentTimePeriod) prevPeriodOffsetMonths = -1;
+        }
+
+        else if (frequency.toLowerCase().contains('quarter')) {
+            integer month = snapDate.month();
+            integer quarterStart;
+            if (month >= 1 && month < 4) quarterStart = 1;
+            else if (month >= 4 && month < 7) quarterStart = 4;
+            else if (month >= 7 && month < 10) quarterStart = 7;
+            else if (month >= 10) quarterStart = 10;
+            startDate = date.newInstance(snapDate.year(), quarterStart, 1);
+            endDate = startDate.addMonths(3);    
+            if (!currentTimePeriod) prevPeriodOffsetMonths = -3;
+        }
+
+        else if (frequency.toLowerCase().contains('fy')) {
+            integer month = snapDate.month();
+            integer year = snapDate.year();
+
+            if (month < fyStartMonth) year--;  // implies the FY started in the previous calendar year
+            startDate = date.newInstance(year, fyStartMonth, 1);
+            endDate = startDate.addMonths(12);    
+            if (!currentTimePeriod) prevPeriodOffsetMonths = -12;
+        }
+
+        else if (frequency.toLowerCase().contains('year')) {
+            startDate = date.newInstance(snapDate.year(), 1, 1);
+            endDate = startDate.addMonths(12);    
+            if (!currentTimePeriod) prevPeriodOffsetMonths = -12;
+        }
+
+        if (startDate != null && endDate != null && string.isblank(historic)){
+            this.snapDate = endDate.addDays(-1);  // ensures the snap date aligns with the end of the period.
+
+            // adjust dates to accomodate the previous period
+            startDate = startDate.addMonths(prevPeriodOffsetMonths);    
+            endDate = endDate.addMonths(prevPeriodOffsetMonths);    
+
+            // if historic has not yet been set...
+            historic = ' AND ' + childRecDateField + space + ' >= ' + lpTools.javaDateFormat(startDate);
+            historic += ' AND ' + childRecDateField + space + ' < ' +  lpTools.javaDateFormat(endDate);    
+        }
         return historic;
     }
+
 
     public string genOutliersQuery(){
         // let's say you're tracking the number of opps created this month on the account record.  if a given account had some
@@ -445,15 +499,15 @@ public class summaryTask implements Schedulable {
 
     public string genTaskQuery(id taskID){
         // generates the query string used for querying tasks (data_summary_c records) to be processed
-        string q = 'SELECT id, Parent_Object__c, Child_Object__c, Child_Relationship_Name__c, Last_Completed__c, Snapshot_Object__c, Name,  Snapshot_Date_Field__c, Snapshot_mode__c, Echo_Mode__c, Relationship_Field_Child__c, Frequency__c, Where_Clause__c, Process_Data__c, Delay_Months__c, Delay_Days__c, batch_size__c, Relationship_Field_Snapshot__c, Snapshot_As_Of_Date__c, Date_Field_on_Child_Record__c, ( SELECT Source_Field__c, Target_Field__c, Reset_Value_After_Snapshot__c, Target_Field_Type__c, How_to_Summarize__c, How_to_Null__c, Specific_Value_to_Set__c FROM Data_Summary_Fields__r WHERE Active__c = TRUE AND How_to_Summarize__c != null ) FROM Data_Summary__c WHERE Parent_Object__c != null  '; 
+        string q = 'SELECT id, Parent_Object__c, Child_Object__c, Child_Relationship_Name__c, Last_Completed__c, Snapshot_Object__c, Name,  Snapshot_Date_Field__c, Snapshot_mode__c, Echo_Mode__c, Relationship_Field_Child__c, Frequency__c, Where_Clause__c, Process_Data__c, Delay_Months__c, Delay_Days__c, batch_size__c, Relationship_Field_Snapshot__c, Snapshot_As_Of_Date__c, Date_Field_on_Child_Record__c, ( SELECT Source_Field__c, Target_Field__c, Reset_Value_After_Snapshot__c, Target_Field_Type__c, How_to_Summarize__c, How_to_Null__c, Specific_Value_to_Set__c FROM Data_Summary_Fields__r WHERE Field_Status__c = :ready) FROM Data_Summary__c  '; 
         
-        string andClause = ' AND Active__c = TRUE AND Active_Fields__c > 0 AND Last_Completed__c != TODAY ';
+        string filterClause = ' WHERE Task_Status__c = :ready  AND Last_Completed__c != TODAY ';
 
         if ( !string.isBlank(taskID) ) {
-            // replace the AND clause when given a specific task to run and set the specifedTask flag to true
-            andClause = ' AND id = :taskID ';  
+            // replace the WHERE clause when given a specific task to run and set the specifedTask flag to true
+            filterClause = ' WHERE id = :taskID ';  
         }
-        q += andClause + ' ORDER BY Task_Priority__c, Last_Completed__c ';  
+        q += filterClause + ' ORDER BY Task_Priority__c, Last_Completed__c ';  
         return q;
     }
 
@@ -519,7 +573,7 @@ public class summaryTask implements Schedulable {
             map<integer,integer> prevQtrs = new map<integer,integer>{1=>12, 2=>12, 3=>12, 4=>3, 5=>3, 6=>3, 7=>6, 8=>6, 9=>6, 10=>9, 11=>9, 12=>9};
             integer yr = today.year();
             
-            integer mo = currQtrs.get(today.month());  // the month when the previous quarter ended
+            integer mo = currQtrs.get(today.month());  // the month when the current quarter ends
             
             if( !currentTimePeriod) {
                 mo = prevQtrs.get(today.month());  // the month when the previous quarter ended
@@ -599,9 +653,15 @@ public class summaryTask implements Schedulable {
 
 
     public static string setToString(set<string> fields){
-        // converts a set of strings to a single comma-delimited string
+        // converts a set of strings to a single comma-delimited string without any braces, ellipses, etc.
+        // this approach allows us to have use one field for multiple purposes, even though it can only appear in a query once.  Say find the min value and max value of field whatever__c in the same task, while having it in the query only once.  note if it's more than once in a query salesforce throws an error.
+        set<string> scrubbedFieldNames = new set<string>();
+
+        // sets are case sensitive - below makes everything lowercase to be sure we have no dupes.
+        for (string field : fields) scrubbedFieldNames.add(field.toLowerCase());  
+
         string fieldString = '';
-        for (string field : fields) fieldString += field + comma;
+        for (string field : scrubbedFieldNames) fieldString += field + comma;
         fieldString = fieldString.removeEnd(comma);
         return fieldString;
     }

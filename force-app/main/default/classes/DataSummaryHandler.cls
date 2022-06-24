@@ -8,11 +8,9 @@ public with sharing class DataSummaryHandler {
         if ( string.isBlank(ds.Child_Object__c) ) {
             ds.Child_Relationship_Name__c = null;
             ds.Relationship_Field_Child__c = null;
-            if ( !string.isBlank(ds.Parent_Object__c) ) {
-                ds.Child_Object__c = ds.Parent_Object__c;
-                ds.Relationship_Field_Child__c = 'id';
-            }
-        } else {
+        } 
+        
+        else {
             summaryTask.RelInfo childRel = summaryTask.genRelInfo(ds.Parent_Object__c, ds.Child_Object__c);
             if (ds.Relationship_Field_Child__c == null && childRel.rel != null) ds.Relationship_Field_Child__c = childRel.rel;
             if (ds.Child_Relationship_Name__c == null && childRel.crn != null) ds.Child_Relationship_Name__c = childRel.crn;       
@@ -21,7 +19,9 @@ public with sharing class DataSummaryHandler {
         if ( string.isBlank(ds.Snapshot_Object__c) ) {
             ds.Relationship_Field_Snapshot__c = null;
             ds.Snapshot_Relationship_Name__c = null;
-        } else {
+        } 
+        
+        else {
             summaryTask.RelInfo snapRel = summaryTask.genRelInfo(ds.Parent_Object__c, ds.Snapshot_Object__c);
             if (ds.Relationship_Field_Snapshot__c == null && snapRel.rel != null) ds.Relationship_Field_Snapshot__c = snapRel.rel;
             if (ds.Snapshot_Relationship_Name__c == null && snapRel.crn != null) ds.Snapshot_Relationship_Name__c = snapRel.crn;                    

@@ -80,10 +80,27 @@ public class summaryTask_test {
 
 
     @isTest public static void test_historicQuery(){
-        summaryTask st = new summaryTask(createSummaryObj('monthly - previous'));
-        st.snapDate = date.newInstance(2022, 6, 30);
-        st.specifiedSnapDate = true;
-        string q = st.genHistoricQueryDates();
+        summaryTask st = new summaryTask(null);
+        st.childRecDateField = 'date__c';
+
+        st.snapDate = date.newInstance(2022, 11, 10);
+
+        st.frequency = 'day';
+        st.genHistoricQueryDates();
+
+        st.frequency = 'month';
+        st.genHistoricQueryDates();
+
+        st.frequency = 'quarter';
+        st.genHistoricQueryDates();
+
+        st.frequency = 'fy';
+        st.genHistoricQueryDates();
+
+        st.frequency = 'year';
+        st.genHistoricQueryDates();
+
+
     }
 
 

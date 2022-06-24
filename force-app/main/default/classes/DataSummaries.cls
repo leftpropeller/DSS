@@ -110,11 +110,11 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         
         string sourceField = string.valueOf( f.get('source_field__c') );
         Object echo = null;
-        for (sObject so : children) {
-            object fieldVal = getValue(st, so, sourceField);
+        for (sObject child : children) {
+            object fieldVal = getValue(st, child, sourceField);
 
             if ( fieldVal != null || blanksToo) echo = fieldVal;
-            else so = clearOutField(so, sourceField);    
+            else child = clearOutField(child, sourceField);    
         }
         saveTally(parent.id, f.target_field__c, echo);
     }
@@ -132,8 +132,8 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         string sourceField = string.valueOf( f.get('source_field__c') );
         integer count = 0;
         set<object> uniques = new set<object>();
-        for (sObject so : children) {
-            object val = getValue(st, so, sourceField);
+        for (sObject child : children) {
+            object val = getValue(st, child, sourceField);
             if (action.toLowerCase().contains('ignore case')) val = ((string)val).tolowercase();
             uniques.add(val)  ;
         }
@@ -152,7 +152,7 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         string sourceField = string.valueOf( f.get('source_field__c') );
 
         decimal sum = 0;
-        for (sObject so : children) sum += (decimal) getValue(st, so, sourceField);
+        for (sObject child : children) sum += (decimal) getValue(st, child, sourceField);
         saveTally(parent.id, f.target_field__c, sum);
     }
   
@@ -161,8 +161,8 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         string sourceField = string.valueOf( f.get('source_field__c') );
 
         object max;
-        for (sObject so : children){
-            object val = getValue(st, so, sourceField);
+        for (sObject child : children){
+            object val = getValue(st, child, sourceField);
             if (max == null || string.valueOf(val) > string.valueOf(max) ) max = val;
         }
         saveTally(parent.id, f.target_field__c, max);
@@ -173,8 +173,8 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         string sourceField = string.valueOf( f.get('source_field__c') );
 
         object min;
-        for (sObject so : children){
-            object val = getValue(st, so, sourceField);
+        for (sObject child : children){
+            object val = getValue(st, child, sourceField);
             if (min == null || string.valueOf(val) < string.valueOf(min) ) min = val;
         }
         saveTally(parent.id, f.target_field__c, min);
@@ -186,9 +186,9 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         decimal count = 0;
         decimal sum = 0;
 
-        for (sObject so : children){
-            if ( getValue(st, so, sourceField) != null) {
-                sum += (decimal) getValue(st, so, sourceField);
+        for (sObject child : children){
+            if ( getValue(st, child, sourceField) != null) {
+                sum += (decimal) getValue(st, child, sourceField);
                 count++;
             }
         }
@@ -205,11 +205,11 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         date bestDate;
         object bestValue;
 
-        for (sObject so : children){
-            date d =  test.isRunningTest() ? date.today() : (date) so.get(st.childRecDateField);
-            if ( getValue(st, so, sourceField) != null && (bestDate == null || d < bestDate)) {
+        for (sObject child : children){
+            date d =  test.isRunningTest() ? date.today() : (date) child.get(st.childRecDateField);
+            if ( getValue(st, child, sourceField) != null && (bestDate == null || d < bestDate)) {
                 bestDate = d;
-                bestValue = getValue(st, so, sourceField);
+                bestValue = getValue(st, child, sourceField);
             }
         }
         saveTally(parent.id, f.target_field__c, bestValue);
@@ -222,11 +222,11 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         date bestDate;
         object bestValue;
 
-        for (sObject so : children){
-            date d =  test.isRunningTest() ? date.today() : (date) so.get(st.childRecDateField);
-            if ( getValue(st, so, sourceField) != null && (bestDate == null || d > bestDate)) {
+        for (sObject child : children){
+            date d =  test.isRunningTest() ? date.today() : (date) child.get(st.childRecDateField);
+            if ( getValue(st, child, sourceField) != null && (bestDate == null || d > bestDate)) {
                 bestDate = d;
-                bestValue = getValue(st, so, sourceField);
+                bestValue = getValue(st, child, sourceField);
             }
         }
         saveTally(parent.id, f.target_field__c, bestValue);
@@ -240,12 +240,12 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         string sourceField = string.valueOf( f.get('source_field__c') );
 
         double sum = 0;
-        for (sObject so : children) sum += (double) getValue(st, so, sourceField) ;
+        for (sObject child : children) sum += (double) getValue(st, child, sourceField) ;
         double avg = sum / children.size();
 
         double sumOfDiffs = 0;
-        for (sObject so : children) {
-            double diff = avg - (double) getValue(st, so, sourceField);
+        for (sObject child : children) {
+            double diff = avg - (double) getValue(st, child, sourceField);
             sumOfDiffs += (diff * diff);  // yes, it's hokey, but math.pow() isn't working properly
         }
 
@@ -265,8 +265,8 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         string sourceField = string.valueOf( f.get('source_field__c') );
         list<decimal> vals = new list<decimal>();
 
-        for (sObject so : children) {
-            vals.add( decimal.valueOf(string.valueOf(getValue(st, so, sourceField))) );
+        for (sObject child : children) {
+            vals.add( decimal.valueOf(string.valueOf(getValue(st, child, sourceField))) );
         }
         vals.sort();
 
@@ -321,28 +321,28 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
             for (sObject parentRec : scope) parentRecIDs.add(parentRec.id);
             string q = st.snapQuery + ' AND ' + st.relFieldSnap + ' in :parentRecIDs ';
             
-            for (sObject so: database.query(q) ){
-                    id key = (string) so.get(st.relFieldSnap);
+            for (sObject snapRec: database.query(q) ){
+                    id key = (string) snapRec.get(st.relFieldSnap);
 
-                    if (st.echoMode) tallies.put(key, so);  // don't clear out the values when in echo mode
-                    else tallies.put(key, clearOutTargetFields(so) );
+                    if (st.echoMode) tallies.put(key, snapRec);  // don't clear out the values when in echo mode
+                    else tallies.put(key, clearOutTargetFields(snapRec) );
 
                     parentRecIDs.remove(key);    
             }
 
             // all that remain in parentRecIDs need to have a snap record created which happens below
             for (id parent : parentRecIDs){
-                sObject so = lpTools.genObjectRecord(st.snapObj, null);
-                so.put(st.relFieldSnap, parent);
-                so.put(st.snapDateField , st.snapDate);
-                tallies.put(parent, so );
+                sObject newRec = lpTools.genObjectRecord(st.snapObj, null);
+                newRec.put(st.relFieldSnap, parent);
+                newRec.put(st.snapDateField , st.snapDate);
+                tallies.put(parent, newRec);
             }
         } 
         
         else {
-            for (sObject so : scope){
-                sObject newRec = clearOutTargetFields(lpTools.genObjectRecord(st.parentObj, so.id));
-                tallies.put(so.id, newRec);
+            for (sObject oldRec : scope){
+                sObject cleanRec = clearOutTargetFields(lpTools.genObjectRecord(st.parentObj, oldRec.id));
+                tallies.put(oldRec.id, cleanRec);
             }
         }
     }
@@ -392,18 +392,20 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         // while you'd be tempted to use a parent-child query in place of this less elegant appraoch, you'd ultimately find that 
         // Salesforce starts throwing "invalid query locator" and "Aggregate query has too many rows..." errors if the child query 
         // yields too many rows.  So, while less elegant, the approach taken is more robust in real Salesforce.
+
+        // returns map<parentID, list<child records>>   
         set<id> parentIDs = new set<id>();
-        for (sObject so : parents) parentIDs.add(so.id);
+        for (sObject parent : parents) parentIDs.add(parent.id);
         
         map<id, list<sObject>> childMap = new map<id, list<sObject>>();
         if ( string.isBlank(st.childQuery) ) return childMap;
         
-        for (sObject so : database.query(st.childQuery)){
-            id key = id.valueOf( (string) so.get(st.relFieldChild));
+        for (sObject child : database.query(st.childQuery)){
+            id key = id.valueOf( (string) child.get(st.relFieldChild));
             if ( !childMap.containsKey(key) ) childMap.put(key, new list<sObject>());
-            list<sObject> child = childMap.get(key);
-            child.add(so);
-            childMap.put( key, child );
+            list<sObject> childRecsList = childMap.get(key);
+            childRecsList.add(child);
+            childMap.put( key, childRecsList );
         }
         return childMap;
     }    
