@@ -4,14 +4,17 @@
 *  System iteratively goes through the records in the Data_Summary__c object running each applicable one as it's own 
 *  batch job.  "Applicable" means - Active = true and the current day matches frequency requirement.
 */
-public class summaryTask implements Schedulable {
+global class summaryTask implements Schedulable {
     private static final string space = ' ';
-    private static final string comma =  ',' + space;
-    public boolean testMode = test.isRunningTest();
+    private static final string comma =  ', ';
+    private static final string pipe = '|';
+    private static final string colon = ':';
+    
+    global boolean testMode = test.isRunningTest();
 
-    // public static final string pass0 = '0-Cleanout';
-    public static final string pass1 = '1-Summary';
-    public static final string pass2 = '2-Outliers';
+    // global static final string pass0 = '0-Cleanout';
+    global static final string pass1 = '1-Summary';
+    global static final string pass2 = '2-Outliers';
     private static final string timeframeDaily = 'daily';
     private static final string timeframeWeekly = 'weekly';
     private static final string timeframeMonthly = 'monthly';
@@ -21,143 +24,165 @@ public class summaryTask implements Schedulable {
     private static final string ready = 'Ready';
     private static final date today = date.today();
 
-    public id taskID; 
-    public string name;
+    global id taskID; 
+    global string name;
 
     // parentQuery pulls all parent records that are relevant to the task at hand
-    public string parentQuery;
+    global string parentQuery;
     
     // childQuery pulls all child records which are to be analyzed and summarized 
-    public string childQuery;
+    global string childQuery;
 
     // snapQuery pulls all existing snapshot records that are relevant to the task
-    public string snapQuery;
+    global string snapQuery;
 
     // outliersQuery pulls all existing snapshot records in the timeframe that have been created in the past but are no longer releveant (likely because the underlying data changed) and need the target fields cleared out.
-    public string outliersQuery;
+    global string outliersQuery;
 
-    public string parentObj;
-    public string childObj;
-    public string snapObj;
-    public string crn;
-    public string childRecDateField;
-    public string frequency;
-    public date snapDate;
-    public string snapDateField;
-    public string relFieldChild;  
-    public string relFieldSnap;  
-    public string whereClause;
-    public integer batchSize = 50;
-    public string pass;
-    public boolean runSnapshots = false;
-    public boolean EchoMode;
-    public boolean runningSpecifiedTask = false;
-    public boolean specifiedSnapDate = false;
-    public boolean currentTimePeriod = true;  // ex: current month vs previous month
-    public map<string, Data_Summary_Field__c> fieldSpecs;   // map<field on source object, field details record>
+    global string parentObj;
+    global string childObj;
+    global string snapObj;
+    global string crn;
+    global string childRecDateField;
+    global string frequency;
+    global date snapDate;
+    global string snapDateField;
+    global string relFieldChild;  
+    global string relFieldSnap;  
+    global string whereClause;
+    global string taskStatus;
+    global integer batchSize = 50;
+    global string pass = pass1;
+    global boolean runSnapshots = false;
+    global boolean EchoMode;
+    global boolean runningSpecifiedTask = false;
+    global boolean specifiedSnapDate = false;
+    global boolean currentTimePeriod = true;  // ex: current month vs previous month
+    global map<string, Data_Summary_Field__c> fieldSpecs;   // map<field on source object, field details record>
 
 
-    public summaryTask(id param1) {
+    global summaryTask(id param1) {
         if ( !string.isblank(param1)) {
             runningSpecifiedTask = true;
             loadNextSummaryTask(param1);
         }
-        else if ( string.isBlank(pass) ) {
-            pass = pass1;
-            loadNextSummaryTask(null);
-        }
+        else loadNextSummaryTask(null);
     }
 
 
-    public class RelInfo{
-        public string rel;
-        public string crn;
+    global class RelInfo{
+        global string rel;
+        global string crn;
     }
 
     
-    public void execute(SchedulableContext SC) {
+    global void execute(SchedulableContext SC) {
         // looks for a task to run and start the first one that's found.
-        loadNextSummaryTask(null);
-        // startDataSummaries();
+        startAllNow();
     }
 
 
-    public static void start(integer hr, integer min){
-        if (hr == null) hr = -1;
-        summaryTask st = new summaryTask(null);
-
-        if (hr == -1) st.loadNextSummaryTask(null);  // start now
-        else {
-            if (min == null) min = 47;
-            string job = 'Data Summary Tasks ' + dateTime.now().format();
-            string cron = '0 ' + string.valueOf(min) + ' ' + string.valueOf(hr) + ' * * ?';
-            system.schedule(job, cron, st);
-        }
-    }
-
-
-    public static void startNow(){
-        // Wrapper method to limit external dependencies as this code evolves.
-        summaryTask.start(-1,0);
-    }
-
+    // ------------ Below are about job control and job logging (start/end)
     
     @invocableMethod (label='Start a Data Summary Task (summaryTask)')
-    public static list<boolean> SummaryTaskInvocable(list<string> tasks){
-        string pipe = '|';
-        string colon = ':';
+    global static list<boolean> SummaryTaskInvocable(list<string> tasks){
         // to call this from a flow - pass {!recordID} as the parameter
         if ( tasks != null && tasks.size() > 0) {
             for (string task : tasks){
                 string taskID = task.substringBefore(pipe);
-                string timeToSchedule = task.substringAfter(pipe);
-                if ( !string.isBlank(taskID)){
-                    summaryTask st = new summaryTask( taskID );
-                }
-                if( !string.isBlank(timeToSchedule) ){
-                    integer hr = integer.valueOf(timeToSchedule.substringBefore(colon));
-                    integer min = integer.valueOf(timeToSchedule.substringAfter(colon));
-                    if (min == null) min = 0;
-                    summaryTask.start(hr, min);
-                }
+                string sched = task.substringAfter(pipe);
+
+                if (!string.isBlank(taskID)) startTaskNow(taskID); // if there's a task, run it.
+                if (!string.isBlank(sched)) setSchedule(sched); // if there's a sched, schedule it.
             }
         }
         return isScheduled();
     }
-    
 
-    public void endTask(){
-        if (taskID == null) return;
-        Data_Summary__c t = new Data_Summary__c (id=taskID, Last_Completed__c=datetime.now());
-        lpTools.saveRec('update', t, 'summaryTask.completedTask');
-    }
-    
-    
-    public void startTask(){
-        if (taskID == null) return;
-        Data_Summary__c t = new Data_Summary__c (id=taskID, Last_Started__c=datetime.now());
-        lpTools.saveRec('update', t, 'summaryTask.completedTask');
+
+    global static void startAllNow(){
+        // Effectively starts all tasks that are due.
+        // This is accomplished by just running the next one due with runningSpecifiedTask = false
+        // being set to false tells DataSummaries to call this method again get the next task to run, and so on
+        // this is just a wrapper since passing a null to startTaskNow() tells it grab the next due task.
+        startTaskNow(null);
     }
 
 
-    public static list<boolean> isScheduled(){
+    global static summaryTask startTaskNow(string taskID){
+        // Starts the selected task.  
+        summaryTask st = new summaryTask( taskID );
+
+        // safety in case there was no task returned (taskID = record id)
+        if (string.isBlank(st.taskID)) return null;
+
+        st.startDataSummaries();
+        return st; // returns the task since it's only running one
+    }
+
+
+    global static list<boolean> isScheduled(){
+        // determines if DSS is scheduled.  if not, the Run Now flow prompts the user to schedule it
         boolean scheduled = false;
-        list<AsyncApexJob> jobs = [SELECT id FROM AsyncApexJob WHERE JobType = 'ScheduledApex' AND Status = 'Queued' AND ApexClass.Name IN ('summarytask', 'LeftProp_DSS.summaryTask', 'dssTaskManager', 'LeftProp_DSS.dssTaskManager')];
+        list<AsyncApexJob> jobs = [SELECT id FROM AsyncApexJob WHERE JobType = 'ScheduledApex' AND Status = 'Queued' AND ApexClass.NamespacePrefix = 'LeftProp_DSS' AND ApexClass.Name = 'summaryTask' ];
         if (jobs != null && jobs.size() > 0) scheduled = true;
         return new list<boolean>{scheduled};
     }
 
 
-    public void startDataSummaries(){
-        startTask();  // set the timestamp for starting the task
-        if ( this != null && !string.isBlank(parentObj) && !string.isBlank(childObj) ) {
-            // if both the st.parent and st.child objects are not blank there's a task to run, so call DataSummaries to do it.
-            database.executeBatch(new DataSummaries(this), batchSize);
-        }
+    global static void setSchedule(string timeToSchedule){
+        // sets the schedule for future runs
+        // timeToSchedule will come in as "|hr:min", though the pipe will already have been removed.
+        if (string.isBlank(timeToSchedule)) return;
+
+        string hr = timeToSchedule.substringBefore(colon).trim();
+        if (string.isBlank(hr)) hr = '0'; // default to 0 = midnight
+
+        string min = timeToSchedule.substringAfter(colon).trim();
+        if (string.isBlank(min)) min = '47'; // default to 47 minutes after the hour
+
+        // now schedule the task
+        string job = 'Data Summary Tasks';
+        string cron = '0 ' + min + ' ' + hr + ' * * ?';
+        system.schedule(job, cron, new summaryTask(null) );
     }
 
 
-    public summaryTask loadNextSummaryTask(id param1){
+    global static void AbortStuckJobs(){
+        // maintenance method - just finds all stuck jobs in queue to execute and kills them
+        set<string> PendingStatuses = new set<string>{'holding'};
+        list<AsyncApexJob> jobs = [SELECT id FROM AsyncApexJob WHERE JobType = 'ScheduledApex' AND ApexClass.NamespacePrefix = 'LeftProp_DSS' AND ApexClass.Name = 'DataSummaries' AND status IN :PendingStatuses ];
+
+        for (AsyncApexJob j : jobs) system.abortJob(j.id);
+    }
+
+
+    global void startDataSummaries(){
+        if ( this != null ) {
+            // set the timestamp for starting the task if on the first pass 
+            if (pass == pass1) startTask();  
+            DataSummaries.startNow(this);
+        }
+    }
+      
+    
+    global void startTask(){
+        if (taskID == null) return;
+        Data_Summary__c t = new Data_Summary__c (id=taskID, Last_Started__c=datetime.now());
+        lpTools.saveRec('update', t, 'summaryTask.completedTask');
+    }
+        
+
+    global void endTask(){
+        if (taskID == null) return;
+        Data_Summary__c t = new Data_Summary__c (id=taskID, Last_Completed__c=datetime.now());
+        lpTools.saveRec('update', t, 'summaryTask.completedTask');
+    }
+
+
+    // ------------ Below are about running a task
+
+    global summaryTask loadNextSummaryTask(id param1){
         taskID = null;
         if ( !string.isBlank(param1) ) taskID = param1;
 
@@ -196,6 +221,8 @@ public class summaryTask implements Schedulable {
             if (frequency.contains('prev') || frequency.contains('last')) currentTimePeriod = false;
         }
 
+        if (!string.isblank(ds.Task_Status__c)) taskStatus = ds.Task_Status__c;  // helps with debugging 
+        
         snapDate = today;
         if (ds.Snapshot_As_Of_Date__c != null) {
             specifiedSnapDate = true;
@@ -221,13 +248,11 @@ public class summaryTask implements Schedulable {
         }
         genChildQuery();
         genOutliersQuery();
-    
-        startDataSummaries();
         return this;
     }
      
     
-    public boolean runToday(Data_Summary__c ds){
+    global boolean runToday(Data_Summary__c ds){
         if (string.isblank(ds.Frequency__c)) return false;
         boolean run = false;
         date d = today;
@@ -260,7 +285,7 @@ public class summaryTask implements Schedulable {
     }     
 
     
-    public map<string, Data_Summary_Field__c> loadParentFieldSpecs(Data_Summary__c ds) {
+    global map<string, Data_Summary_Field__c> loadParentFieldSpecs(Data_Summary__c ds) {
         // loads the related Data_Summary_Field__c records in to the map fieldSpecs<field name, Data_Summary_Field__c>
         fieldSpecs = new map<string, Data_Summary_Field__c>();
         for (Data_Summary_Field__c f : ds.Data_Summary_Fields__r ){
@@ -272,7 +297,7 @@ public class summaryTask implements Schedulable {
     }
     
     
-    public string genparentQuery(){
+    global string genparentQuery(){
         // generates the query that pulls set of relevant parent records for the summarization process.  
         // Querying the actual child records happens elsewhere.  This is done so all child records are pulled at once for a given parent.
 
@@ -299,7 +324,7 @@ public class summaryTask implements Schedulable {
     }
 
 
-    public string genEchoModeQuery(Data_Summary__c ds){
+    global string genEchoModeQuery(Data_Summary__c ds){
         // this produces the summary query when running in echo mode
         // note that it REPLACES the standard parentQuery
 
@@ -318,7 +343,7 @@ public class summaryTask implements Schedulable {
     }
     
 
-    public string genSnapQuery(Data_Summary__c ds){
+    global string genSnapQuery(Data_Summary__c ds){
         // snapQuery finds the records already existing in the snapshot object.  the query result is used 
         // to prevent the creation of duplicate snapshot records for a given timeframe
 
@@ -339,7 +364,7 @@ public class summaryTask implements Schedulable {
     }
 
     
-    public string genFilterQuery(){
+    global string genFilterQuery(){
         // the genFilterQuery limits the records to be processed to those in the correct context based on the parent object id
         // in the following: SELECT id FROM contact WHERE id IN ( SELECT Contact__c FROM Country_Visited__c WHERE date__c = THIS_MONTH )
         // the sub query inside the WHERE IN (xxx) is the filter query.
@@ -353,7 +378,7 @@ public class summaryTask implements Schedulable {
     }
     
 
-    public string genChildQuery(){
+    global string genChildQuery(){
         // childQuery pulls all of the relevant child records for a given set of parents.  these are the records to be analyzed
 
         // bail if there's not enough info to proceed, including if there are no fields specified.
@@ -398,7 +423,7 @@ public class summaryTask implements Schedulable {
     }
 
 
-    public string genHistoricQueryDates(){
+    global string genHistoricQueryDates(){
         // this method creates the part of the where clause to account for historical dates, based on the snapDate field and frequency.
         // it also sets the snapDate to the end of the period so data is recorded when expected
         if (snapDate == null || string.isblank(frequency)) return '';
@@ -463,7 +488,7 @@ public class summaryTask implements Schedulable {
     }
 
 
-    public string genOutliersQuery(){
+    global string genOutliersQuery(){
         // let's say you're tracking the number of opps created this month on the account record.  if a given account had some
         // created last month but none yet this month, the field would erroneously hold a value.  this generates the query
         // which identifies those "outliers" and is used to clear them out.
@@ -497,9 +522,9 @@ public class summaryTask implements Schedulable {
     }
 
 
-    public string genTaskQuery(id taskID){
+    global string genTaskQuery(id taskID){
         // generates the query string used for querying tasks (data_summary_c records) to be processed
-        string q = 'SELECT id, Parent_Object__c, Child_Object__c, Child_Relationship_Name__c, Last_Completed__c, Snapshot_Object__c, Name,  Snapshot_Date_Field__c, Snapshot_mode__c, Echo_Mode__c, Relationship_Field_Child__c, Frequency__c, Where_Clause__c, Process_Data__c, Delay_Months__c, Delay_Days__c, batch_size__c, Relationship_Field_Snapshot__c, Snapshot_As_Of_Date__c, Date_Field_on_Child_Record__c, ( SELECT Source_Field__c, Target_Field__c, Reset_Value_After_Snapshot__c, Target_Field_Type__c, How_to_Summarize__c, How_to_Null__c, Specific_Value_to_Set__c FROM Data_Summary_Fields__r WHERE Field_Status__c = :ready) FROM Data_Summary__c  '; 
+        string q = 'SELECT id, Parent_Object__c, Child_Object__c, Child_Relationship_Name__c, Last_Completed__c, Snapshot_Object__c, Name,  Snapshot_Date_Field__c, Snapshot_mode__c, Echo_Mode__c, Relationship_Field_Child__c, Frequency__c, Where_Clause__c, Process_Data__c, Delay_Months__c, Delay_Days__c, batch_size__c, Relationship_Field_Snapshot__c, Snapshot_As_Of_Date__c, Date_Field_on_Child_Record__c, Task_Status__c, ( SELECT Source_Field__c, Target_Field__c, Reset_Value_After_Snapshot__c, Target_Field_Type__c, How_to_Summarize__c, How_to_Null__c, Specific_Value_to_Set__c FROM Data_Summary_Fields__r WHERE Field_Status__c = :ready) FROM Data_Summary__c  '; 
         
         string filterClause = ' WHERE Task_Status__c = :ready  AND Last_Completed__c != TODAY ';
 
@@ -512,7 +537,7 @@ public class summaryTask implements Schedulable {
     }
 
 
-    public static string tuneWhereClause(string whereClause){
+    global static string tuneWhereClause(string whereClause){
         if (string.isBlank(whereClause)) return null;
 
         string sp = ' ';
@@ -534,7 +559,7 @@ public class summaryTask implements Schedulable {
     }
 
 
-    public string genQueryNullString(Data_Summary_Field__c f){
+    global string genQueryNullString(Data_Summary_Field__c f){
         string nil = 'null';
         string zero = '0';
         string blank = '\'\'';
@@ -551,7 +576,7 @@ public class summaryTask implements Schedulable {
     }
     
 
-    public date genSnapshotTimestamp(){
+    global date genSnapshotTimestamp(){
         if (string.isblank(frequency)) return null;
         // determines the date the snapshot should be recorded on
         date ds;  // ds = date stamp
@@ -599,20 +624,20 @@ public class summaryTask implements Schedulable {
     }
 
 
-    public date lastDayOfMonth(date mo){  
+    global date lastDayOfMonth(date mo){  
         // gets last day of month by finding the first day of the following month then finding the preceeding day.
         date nextMo = mo.addMonths(1);
         return date.newInstance(nextMo.year(), nextMo.month(), 1).addDays(-1);
     }
 
 
-    public date lastDayOfPrevMonth(date mo){  
+    global date lastDayOfPrevMonth(date mo){  
         // gets last day of month by finding the first day of the following month then finding the preceeding day.
         return date.newInstance(mo.year(), mo.month(), 1).addDays(-1);
     }
 
 
-    public static RelInfo genRelInfo(string parent, string child){  
+    global static RelInfo genRelInfo(string parent, string child){  
         // returns the Child Relationship Name
         RelInfo ri = new RelInfo();
         if (parent == null || child == null ) return ri;
@@ -632,7 +657,7 @@ public class summaryTask implements Schedulable {
     }
 
         
-    public static integer fyStartMonth{
+    global static integer fyStartMonth{
         get {
             if (fyStartMonth == null || fyStartMonth == 0) {
                 fyStartMonth = lpTools.fyStartMonth;
@@ -642,8 +667,8 @@ public class summaryTask implements Schedulable {
     } 
     
     
-    public static void resetToday(){
-        list<Data_Summary__c> tasks = [SELECT id FROM Data_Summary__c WHERE active__c = true ];   
+    global static void resetToday(){
+        list<Data_Summary__c> tasks = [SELECT id FROM Data_Summary__c WHERE task_status__c = :Ready ];   
         for (Data_Summary__c t : tasks) {
             t.Last_Started__c = null;
             t.Last_Completed__c = null;
@@ -652,7 +677,7 @@ public class summaryTask implements Schedulable {
     }
 
 
-    public static string setToString(set<string> fields){
+    global static string setToString(set<string> fields){
         // converts a set of strings to a single comma-delimited string without any braces, ellipses, etc.
         // this approach allows us to have use one field for multiple purposes, even though it can only appear in a query once.  Say find the min value and max value of field whatever__c in the same task, while having it in the query only once.  note if it's more than once in a query salesforce throws an error.
         set<string> scrubbedFieldNames = new set<string>();
@@ -667,7 +692,7 @@ public class summaryTask implements Schedulable {
     }
 
 
-    public string genQueryTimeString(){
+    global string genQueryTimeString(){
         if ( string.isBlank(this.frequency)) return null;
         // if ( string.isblank(this.snapDateField) || (string.isBlank(this.frequency) && !this.specifiedSnapDate) ) return null;
         string timeString = '';
@@ -700,7 +725,7 @@ public class summaryTask implements Schedulable {
     }
 
 
-    public object getNull(Data_Summary_Field__c f){
+    global object getNull(Data_Summary_Field__c f){
         object nulling = null;
         if ( !string.isBlank(f.How_to_Null__c) ){
             if (f.How_to_Null__c == 'zero') nulling = 0;
@@ -710,7 +735,7 @@ public class summaryTask implements Schedulable {
     }
 
 
-    public static RelInfo getRelInfo(string parent, string child){  // add to lpTools
+    global static RelInfo getRelInfo(string parent, string child){  // add to lpTools
         // returns the Child Relationship Name
         RelInfo ri = new RelInfo();
         if (parent == null || child == null ) return ri;

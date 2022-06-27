@@ -5,7 +5,7 @@ public class summaryTask_test {
     
 
     @isTest public static void test_invocable(){
-        id taskID = createSummaryObj(null);
+        id taskID = createSummaryObjInTask(null);
         createSummaryPlan(taskID);
         summaryTask.SummaryTaskInvocable(new list<string>{taskID});
     }
@@ -21,7 +21,7 @@ public class summaryTask_test {
     @isTest public static void test_timeframes(){
         set<id> taskIDs = new set<id>();
         for (string f : frequencies) {
-            taskIDs.add(createSummaryObj(f));
+            taskIDs.add(createSummaryObjInTask(f));
         }
 
         for (id t : taskIDs) {
@@ -38,9 +38,9 @@ public class summaryTask_test {
 
 
     @isTest public static void summary_test(){
-        id taskID = createSummaryObj(null);
+        id taskID = createSummaryObjInTask(null);
         createSummaryPlan(taskID);
-        // createSummaryPlan( createSummaryObj(null) );
+        // createSummaryPlan( createSummaryObjInTask(null) );
  
         test.startTest();
 	        summaryTask st = new summaryTask(null);
@@ -66,7 +66,7 @@ public class summaryTask_test {
 
 
     @isTest public static void nulling_test(){
-        createSummaryPlan( createSummaryObj(null) );
+        createSummaryPlan( createSummaryObjInTask(null) );
         summaryTask st = new summaryTask(null);
 
         if (st.fieldSpecs == null || st.fieldSpecs.size() == 0) return;
@@ -75,7 +75,7 @@ public class summaryTask_test {
 
 
     @isTest public static void test_scheduledStart(){
-    	summaryTask.start(10,null);  
+    	summaryTask.setSchedule('10:');  
     }
 
 
@@ -99,13 +99,20 @@ public class summaryTask_test {
 
         st.frequency = 'year';
         st.genHistoricQueryDates();
-
-
     }
 
 
     @isTest public static void test_normalStart(){
-    	summaryTask.startnow();  
+        id taskID = createSummaryObjInTask(null);
+        createSummaryPlan(taskID);
+        // DataSummaries_test.createData();
+
+    	summaryTask.startAllNow();  
+    }
+
+
+    @isTest public static void test_AbortStuckJobs(){
+    	summaryTask.AbortStuckJobs();  
     }
 
 
@@ -201,7 +208,7 @@ public class summaryTask_test {
         insert fields;
     }
     
-    public static id createSummaryObj(string freq){
+    public static id createSummaryObjInTask(string freq){
         Data_Summary__c ds = new Data_Summary__c();
         ds.Parent_Object__c = 'Account';
         ds.Child_Object__c = 'Contact';

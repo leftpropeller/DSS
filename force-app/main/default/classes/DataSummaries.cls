@@ -11,7 +11,7 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
     public string querySave;
 
     public DataSummaries(summaryTask param1) {
-        if (param1 == null ) st = new summaryTask(null);
+        if (param1 == null) st = new summaryTask(null);
         else st = param1;
     }
  
@@ -36,28 +36,22 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
     public void finish(Database.BatchableContext BC) {
         if (counter > 10) return;
 
-        if ( string.isblank(st.pass) || st.pass == summaryTask.pass1 ){      
+        if ( st.pass == summaryTask.pass1 ){      
             st.pass = summaryTask.pass2;  // if it was running the first pass, start the second.
-            // database.executebatch(new DataSummaries(st), st.batchSize); 
-            st.startDataSummaries();
+            startNow(st);
         } 
         
         else { 
             st.endTask();  // once the second pass is complete, close outthe task...
-            if ( !st.runningSpecifiedTask ) summaryTask.startNow();  // call summaryTask to find and execute the next task, if there is one.
+
+            // if not running one specific task, call summaryTask to find and execute the next task due to run
+            if ( !st.runningSpecifiedTask ) summaryTask.startAllNow();  
         }
     }
 
-    
-    @invocableMethod 
-    public static void DataSummariesInvocable(list<string> tasks){
-        // to call this from a flow - pass {!recordID} as the parameter
-        if ( tasks != null && tasks.size() > 0) {
-            for (string task : tasks){
-                summaryTask st = new summaryTask( task );
-                if ( st != null ) database.executebatch(new DataSummaries( st ), st.batchSize); 
-            }
-        }
+
+    public static void startNow(summaryTask st){
+        if (st != null) database.executebatch(new DataSummaries(st), st.batchSize);
     }
 
 
