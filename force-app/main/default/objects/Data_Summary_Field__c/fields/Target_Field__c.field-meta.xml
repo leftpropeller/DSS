@@ -3,6 +3,7 @@
     <fullName>Target_Field__c</fullName>
     <deprecated>false</deprecated>
     <externalId>false</externalId>
+    <inlineHelpText>The field where the analysis will be stored</inlineHelpText>
     <label>Summarize To (Target Field)</label>
     <length>255</length>
     <required>false</required>

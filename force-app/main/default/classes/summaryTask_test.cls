@@ -1,7 +1,7 @@
 //  Steve Berley - steve@leftpropeller.com
 @isTest
 public class summaryTask_test {
-    public static set<string> frequencies = new set<string>{ 'Daily - Current', 'Daily - Previous', 'Monthly - Current', 'Monthly - Previous', 'Quarterly - Current', 'Quarterly - Previous', 'Yearly - Current', 'Yearly - Previous', 'FY - Current', 'FY - Previous' };
+    public static set<string> frequencies = new set<string>{ 'Daily - Current', 'Daily - Previous', 'Monthly - Current', 'Monthly - Previous', 'Quarterly - Current', 'Quarterly - Previous', 'Yearly - Current', 'Yearly - Previous', 'FY - Current', 'FY - Previous', 'Last 12 Months'};
     
 
     @isTest public static void test_invocable(){
@@ -11,14 +11,7 @@ public class summaryTask_test {
     }
 
 
-    @isTest public static void test_monthEnds(){
-        summaryTask st = new summaryTask(null);
-        st.lastDayOfMonth(date.today());
-        st.lastDayOfPrevMonth(date.today());
-    }
-
-
-    @isTest public static void test_timeframes(){
+    @isTest public static void test_queries(){
         set<id> taskIDs = new set<id>();
         for (string f : frequencies) {
             taskIDs.add(createSummaryObjInTask(f));
@@ -26,8 +19,10 @@ public class summaryTask_test {
 
         for (id t : taskIDs) {
             summaryTask st = new summaryTask(t);
-            st.genSnapshotTimestamp();
-            st.genQueryTimeString();
+            string q = st.parentQuery;
+            q = st.childQuery;
+            q = st.snapQuery;
+            q = st.outliersQuery;
         }
     }
 
@@ -44,19 +39,6 @@ public class summaryTask_test {
  
         test.startTest();
 	        summaryTask st = new summaryTask(null);
-         	st.endTask();
-	        st = new summaryTask(null);
-         	st.endTask();
-            summaryTask.resetToday();
-        test.stopTest();
-    }
-
-
-    @isTest public static void echoMode_test(){
-        id taskID = setupEchoTest();
-
-        test.startTest();
-	        summaryTask st = new summaryTask(taskID);
          	st.endTask();
 	        st = new summaryTask(null);
          	st.endTask();
@@ -86,19 +68,22 @@ public class summaryTask_test {
         st.snapDate = date.newInstance(2022, 11, 10);
 
         st.frequency = 'day';
-        st.genHistoricQueryDates();
+        st.genQueryTimeFilters();
 
         st.frequency = 'month';
-        st.genHistoricQueryDates();
+        st.genQueryTimeFilters();
 
         st.frequency = 'quarter';
-        st.genHistoricQueryDates();
+        st.genQueryTimeFilters();
 
         st.frequency = 'fy';
-        st.genHistoricQueryDates();
+        st.genQueryTimeFilters();
 
         st.frequency = 'year';
-        st.genHistoricQueryDates();
+        st.genQueryTimeFilters();
+
+        st.frequency = 'last 12 months';
+        st.genQueryTimeFilters();
     }
 
 
@@ -127,11 +112,6 @@ public class summaryTask_test {
     }
 
 
-    @isTest public static void test_getRelInfo(){
-        summaryTask.getRelInfo('account', 'contact');
-    }
-
-
     @isTest public static void get_tuneWhereClause(){
         string w = ' where account.name = :hello and lastname = bonzo ';
     	summaryTask.tuneWhereClause(w);    
@@ -141,23 +121,22 @@ public class summaryTask_test {
     @isTest public static void test_fyStartMonth(){
     	integer fyStart = summaryTask.fyStartMonth;    
     }
-        
 
-    @isTest private static void test_runToday(){
+
+    @isTest public static void test_detritis(){
         summaryTask st = new summaryTask(null);
-        st.snapDateField = 'snap field';
+    	st.genQueryTimeString();  
+    	st.genSnapshotTimestamp();  
+    	st.genFilterQuery();  
+    	st.genHistoricQueryDates();  
+    	st.loadParentFieldSpecs(new Data_Summary__c());  
+    	st.genEchoModeQuery(new Data_Summary__c());  
+    	st.lastDayOfMonth(date.today());  
+    	st.lastDayOfPrevMonth(date.today());  
+    	st.runToday(new Data_Summary__c());  
 
-        Data_Summary__c ds = new Data_Summary__c();
-        ds.Process_Data__c = 'daily';
-        st.runToday(ds);
-
-        ds.Process_Data__c = null;
-        for (string f : frequencies){
-            ds.Frequency__c = f;
-            st.runToday(ds);
-        }
+        summaryTask.getRelInfo('account','contact');  
     }
-
 
     public static void createSummaryPlan(id dsID){
         list<Data_Summary_Field__c> fields = new list<Data_Summary_Field__c>();
@@ -200,7 +179,7 @@ public class summaryTask_test {
         Data_Summary_Field__c five = new Data_Summary_Field__c();
         five.Summary__c = dsID;
         five.Source_Field__c = 'name';
-        five.How_to_Summarize__c = 'copy (including blanks)'; 
+        five.How_to_Summarize__c = 'copy'; 
         five.target_field__c = 'name';
         // five.Target_Field_Type__c = 'string';        
         fields.add(five);

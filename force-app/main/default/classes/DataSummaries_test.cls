@@ -14,7 +14,7 @@ public class DataSummaries_test {
         createData();
         Data_Summary__c ds = createSummaryObj(snapObj);
         list<Data_Summary_Field__c> fields = new list<Data_Summary_Field__c>();
-        fields.add( genField(ds.id, 'name', 'name', 'copy (including blanks)') );
+        fields.add( genField(ds.id, 'name', 'name', 'copy') );
         fields.add( genField(ds.id, 'amount', 'quantity', 'sum') );
         insert fields;
         verifyConfigDataSetup(ds.id, 'test_one');
@@ -30,7 +30,7 @@ public class DataSummaries_test {
         createData();
         Data_Summary__c ds = createSummaryObj(snapObj);
         list<Data_Summary_Field__c> fields = new list<Data_Summary_Field__c>();
-        fields.add( genField(ds.id, 'name', 'name', 'copy (including blanks)') );
+        fields.add( genField(ds.id, 'name', 'name', 'copy') );
         fields.add( genField(ds.id, 'amount', 'quantity', 'average') );
         insert fields;
         verifyConfigDataSetup(ds.id, 'test_two');
@@ -92,7 +92,7 @@ public class DataSummaries_test {
         createData();
         Data_Summary__c ds = createSummaryObj(snapObj);
         list<Data_Summary_Field__c> fields = new list<Data_Summary_Field__c>();
-        fields.add( genField(ds.id, 'name', 'name', 'copy (including blanks)') );
+        fields.add( genField(ds.id, 'name', 'name', 'copy') );
         fields.add( genField(ds.id, 'amount', 'quantity', 'median') );
         insert fields;
         verifyConfigDataSetup(ds.id, 'test_median');
@@ -202,7 +202,7 @@ public class DataSummaries_test {
     @isTest static void test_clearFields(){
         Data_Summary__c ds = createSummaryObj(snapObj);
         list<Data_Summary_Field__c> fields = new list<Data_Summary_Field__c>();
-        fields.add( genField(ds.id, 'name', 'name', 'copy (including blanks)') );
+        fields.add( genField(ds.id, 'name', 'name', 'copy') );
         fields.add( genField(ds.id, 'amount', 'quantity', 'sum') );
         // fields.add( genField(ds.id, 'closedate', 'installdate', 'min') );
         insert fields;
@@ -219,26 +219,20 @@ public class DataSummaries_test {
         insert snapRec;
 
         summaryTask st = new summaryTask(ds.id);
+        st.pass = summaryTask.pass2;
+
         test.startTest();
-            DataSummaries dsTask = new DataSummaries(null);
+            DataSummaries dsTask = new DataSummaries(st);
             for (SObject so : database.query('select id from asset')) {
                 dsTask.clearOutTargetFields(so);
                 for (Data_Summary_Field__c f : st.fieldSpecs.values()){
-                    dsTask.clearoutfield(so, f.source_field__c);
+                    // dsTask.clearoutfield(so, f.source_field__c);
                 }
             }
         test.stopTest();     
     }
 
-
-    @isTest static void test_isChanged(){
-        DataSummaries dss = new DataSummaries(null);
-        string x = 'helloooo';
-        string y = 'sweetie';
-        dss.isChanged(x,y);
-    }
-     
-
+    
     public static void verifyConfigDataSetup(id summaryID, string test){
         summaryTask st = new summaryTask(summaryID);
         system.assert( !string.isblank(st.parentQuery), '>>>>>>    config data load failure!!!  '+test  );
