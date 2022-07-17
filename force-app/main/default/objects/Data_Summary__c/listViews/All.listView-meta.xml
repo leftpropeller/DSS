@@ -3,11 +3,8 @@
     <fullName>All</fullName>
     <columns>NAME</columns>
     <columns>Description__c</columns>
-    <columns>Parent_Object__c</columns>
     <columns>Frequency__c</columns>
-    <columns>Child_Object__c</columns>
-    <columns>Snapshot_Object__c</columns>
-    <columns>Active__c</columns>
+    <columns>Task_Status__c</columns>
     <columns>Run_Status__c</columns>
     <columns>Last_Completed__c</columns>
     <filterScope>Everything</filterScope>

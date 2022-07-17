@@ -3,8 +3,8 @@
     <actionCalls>
         <name>Set_the_new_schedule</name>
         <label>Set the new schedule</label>
-        <locationX>242</locationX>
-        <locationY>974</locationY>
+        <locationX>324</locationX>
+        <locationY>1118</locationY>
         <actionName>summaryTask</actionName>
         <actionType>apex</actionType>
         <connector>
@@ -20,14 +20,14 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <name>Start_the_task</name>
+        <name>Start_the_task_0</name>
         <label>Start the task</label>
-        <locationX>264</locationX>
-        <locationY>278</locationY>
+        <locationX>258</locationX>
+        <locationY>518</locationY>
         <actionName>summaryTask</actionName>
         <actionType>apex</actionType>
         <connector>
-            <targetReference>screen_0</targetReference>
+            <targetReference>screen_0_0</targetReference>
         </connector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
@@ -45,8 +45,8 @@
     <decisions>
         <name>Is_DSS_Scheduled</name>
         <label>Is DSS Scheduled</label>
-        <locationX>176</locationX>
-        <locationY>614</locationY>
+        <locationX>258</locationX>
+        <locationY>758</locationY>
         <defaultConnector>
             <targetReference>Schedule_DSS</targetReference>
         </defaultConnector>
@@ -70,7 +70,7 @@
         <locationX>176</locationX>
         <locationY>158</locationY>
         <defaultConnector>
-            <targetReference>Start_the_task</targetReference>
+            <targetReference>Load_Task_Details</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Has Value</defaultConnectorLabel>
         <rules>
@@ -87,17 +87,14 @@
                 <leftValueReference>recordId</leftValueReference>
                 <operator>EqualTo</operator>
             </conditions>
-            <connector>
-                <targetReference>Is_DSS_Scheduled</targetReference>
-            </connector>
             <label>Is null</label>
         </rules>
     </decisions>
     <decisions>
         <name>User_set_new_schedule</name>
         <label>User set new schedule</label>
-        <locationX>374</locationX>
-        <locationY>854</locationY>
+        <locationX>456</locationX>
+        <locationY>998</locationY>
         <defaultConnectorLabel>No</defaultConnectorLabel>
         <rules>
             <name>Yes_setSchedule</name>
@@ -112,10 +109,47 @@
             <label>Yes</label>
         </rules>
     </decisions>
+    <decisions>
+        <name>What_s_the_task_status</name>
+        <label>What&apos;s the task status</label>
+        <locationX>555</locationX>
+        <locationY>398</locationY>
+        <defaultConnector>
+            <targetReference>screen_0</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Anything Else</defaultConnectorLabel>
+        <rules>
+            <name>Ready_or_Not_Active</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>TaskStatus</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Ready</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>TaskStatus</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Not Active</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Start_the_task_0</targetReference>
+            </connector>
+            <label>Ready or Not Active</label>
+        </rules>
+    </decisions>
+    <formulas>
+        <name>TaskStatus</name>
+        <dataType>String</dataType>
+        <expression>trim( {!Load_Task_Details.Task_Status__c})</expression>
+    </formulas>
     <formulas>
         <name>TimeString</name>
         <dataType>String</dataType>
-        <expression>if ( isblank(text({!Hour})), &apos;&apos;, text({!Hour}) +&apos;:&apos;  +  right(&apos;00&apos;+text({!Minute}), 2) )</expression>
+        <expression>if ( isblank(text({!Hour})), &apos;&apos;,  right(&apos;00&apos;+text({!Hour}), 2)+&apos;:&apos;  +  right(&apos;00&apos;+text({!Minute}), 2) )</expression>
     </formulas>
     <interviewLabel>Run Selected Data Summary {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Run Selected Data Summary</label>
@@ -138,11 +172,34 @@
         </value>
     </processMetadataValues>
     <processType>Flow</processType>
+    <recordLookups>
+        <name>Load_Task_Details</name>
+        <label>Load Task Details</label>
+        <locationX>555</locationX>
+        <locationY>278</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>What_s_the_task_status</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Data_Summary__c</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Task_Status__c</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <screens>
         <name>Schedule_DSS</name>
         <label>Schedule DSS</label>
-        <locationX>374</locationX>
-        <locationY>734</locationY>
+        <locationX>456</locationX>
+        <locationY>878</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -151,7 +208,7 @@
         </connector>
         <fields>
             <name>Instructions</name>
-            <fieldText>&lt;p&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;DSS is not currently scheduled to run automatically every day.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;Correct this by entering the desired time you&apos;d like it to run.  We recommend scheduling it to run in early hours of the morning, say 1:00am.&lt;/span&gt;&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;DSS is not currently scheduled to run automatically every day.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;Correct this by entering the desired time you&apos;d like it to run.  We recommend scheduling it to run in early hours of the morning, say 1:00am.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;em style=&quot;font-size: 14px;&quot;&gt;If you&apos;re not yet ready to schedule it, just leave both fields below and click Next&lt;/em&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <fields>
@@ -211,8 +268,24 @@
     <screens>
         <name>screen_0</name>
         <label>screen</label>
-        <locationX>264</locationX>
-        <locationY>398</locationY>
+        <locationX>852</locationX>
+        <locationY>518</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <fields>
+            <name>msg_0</name>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;color: rgb(255, 0, 0); background-color: rgb(255, 255, 255); font-size: 14px;&quot;&gt;Alert:&lt;/strong&gt;&lt;span style=&quot;color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); font-size: 14px;&quot;&gt;  The task won&apos;t run unless its status is &quot;Ready&quot; or &quot;Not Active&quot;&lt;/span&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>screen_0_0</name>
+        <label>screen</label>
+        <locationX>258</locationX>
+        <locationY>638</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -220,7 +293,7 @@
             <targetReference>Is_DSS_Scheduled</targetReference>
         </connector>
         <fields>
-            <name>msg_0</name>
+            <name>msg_0_0</name>
             <fieldText>&lt;p&gt;&lt;span style=&quot;color: rgb(68, 68, 68); background-color: rgb(255, 255, 255); font-size: 14px;&quot;&gt;﻿The Data Summary task has started&lt;/span&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
@@ -230,8 +303,8 @@
     <screens>
         <name>Show_Time_0_0_0</name>
         <label>Show Time</label>
-        <locationX>242</locationX>
-        <locationY>1094</locationY>
+        <locationX>324</locationX>
+        <locationY>1238</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -250,7 +323,7 @@
             <targetReference>recordID_has_value</targetReference>
         </connector>
     </start>
-    <status>Obsolete</status>
+    <status>Active</status>
     <variables>
         <name>DSSscheduled</name>
         <dataType>Boolean</dataType>

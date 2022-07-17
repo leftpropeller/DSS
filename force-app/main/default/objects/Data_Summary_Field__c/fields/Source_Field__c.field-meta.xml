@@ -4,7 +4,7 @@
     <deprecated>false</deprecated>
     <externalId>false</externalId>
     <inlineHelpText>This is the field you’d like to analyze</inlineHelpText>
-    <label>Source Field (on Child)</label>
+    <label>Source Field</label>
     <length>255</length>
     <required>false</required>
     <trackHistory>false</trackHistory>

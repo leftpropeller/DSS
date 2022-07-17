@@ -63,6 +63,11 @@
                 <default>false</default>
                 <label>FY - Previous</label>
             </value>
+            <value>
+                <fullName>Last 12 Months</fullName>
+                <default>false</default>
+                <label>Last 12 Months</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

@@ -176,6 +176,11 @@
         <excludedStandardButtons>Import</excludedStandardButtons>
         <excludedStandardButtons>MassChangeOwner</excludedStandardButtons>
         <excludedStandardButtons>ChangeOwner</excludedStandardButtons>
+        <searchResultsAdditionalFields>Description__c</searchResultsAdditionalFields>
+        <searchResultsAdditionalFields>Frequency__c</searchResultsAdditionalFields>
+        <searchResultsAdditionalFields>Task_Status__c</searchResultsAdditionalFields>
+        <searchResultsAdditionalFields>Run_Status__c</searchResultsAdditionalFields>
+        <searchResultsAdditionalFields>Last_Completed__c</searchResultsAdditionalFields>
         <searchResultsCustomButtons>Quick_Summary_Task</searchResultsCustomButtons>
     </searchLayouts>
     <sharingModel>ReadWrite</sharingModel>

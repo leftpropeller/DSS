@@ -14,49 +14,44 @@
         <valueSetDefinition>
             <sorted>false</sorted>
             <value>
-                <fullName>count</fullName>
+                <fullName>Count</fullName>
                 <default>false</default>
-                <label>count</label>
+                <label>Count</label>
             </value>
             <value>
-                <fullName>sum</fullName>
+                <fullName>Sum</fullName>
                 <default>false</default>
-                <label>sum</label>
+                <label>Sum</label>
             </value>
             <value>
-                <fullName>min</fullName>
+                <fullName>Min</fullName>
                 <default>false</default>
-                <label>min</label>
+                <label>Min</label>
             </value>
             <value>
-                <fullName>max</fullName>
+                <fullName>Max</fullName>
                 <default>false</default>
-                <label>max</label>
+                <label>Max</label>
             </value>
             <value>
-                <fullName>average</fullName>
+                <fullName>Average</fullName>
                 <default>false</default>
-                <label>average</label>
+                <label>Average</label>
             </value>
             <value>
-                <fullName>oldest value</fullName>
+                <fullName>Oldest Value</fullName>
                 <default>false</default>
-                <label>oldest value</label>
+                <label>Oldest Value</label>
             </value>
             <value>
-                <fullName>newest value</fullName>
+                <fullName>Newest Value</fullName>
                 <default>false</default>
-                <label>newest value</label>
+                <label>Newest Value</label>
             </value>
             <value>
-                <fullName>copy (including blanks)</fullName>
+                <fullName>Copy</fullName>
                 <default>false</default>
-                <label>copy (including blanks)</label>
-            </value>
-            <value>
-                <fullName>copy (only non-blank)</fullName>
-                <default>false</default>
-                <label>copy (only non-blank)</label>
+                <label>Copy</label>
             </value>
             <value>
                 <fullName>Count Unique Values</fullName>
@@ -98,6 +93,18 @@
                 <default>false</default>
                 <isActive>false</isActive>
                 <label>Set Specific Value</label>
+            </value>
+            <value>
+                <fullName>copy (including blanks)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>copy (including blanks)</label>
+            </value>
+            <value>
+                <fullName>copy (only non-blank)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>copy (only non-blank)</label>
             </value>
         </valueSetDefinition>
     </valueSet>
