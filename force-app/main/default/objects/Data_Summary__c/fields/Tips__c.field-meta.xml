@@ -3,7 +3,7 @@
     <fullName>Tips__c</fullName>
     <deprecated>false</deprecated>
     <externalId>false</externalId>
-    <formula>if (  !CONTAINS(Child_Object__c, &apos;__c&apos;) , &apos;Note that some standard objects, notably Tasks, are very limited in how you can use them in a where clause&apos;,&apos;&apos;)</formula>
+    <formula>if (  !CONTAINS(Child_Object__c, &apos;__c&apos;) , &apos;Some standard objects, notably Tasks, are very limited in how you can use them in a where clause&apos;,&apos;&apos;)</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>Tips</label>
     <required>false</required>
