@@ -16,7 +16,7 @@ public class DataSummaries_test {
         list<Data_Summary_Field__c> fields = new list<Data_Summary_Field__c>();
         fields.add( genField(ds.id, 'name', 'name', 'copy') );
         fields.add( genField(ds.id, 'amount', 'quantity', 'sum') );
-        insert fields;
+        insert fields; 
         verifyConfigDataSetup(ds.id, 'test_one');
         
         test.startTest();

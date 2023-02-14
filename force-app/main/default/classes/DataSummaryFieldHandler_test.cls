@@ -4,7 +4,7 @@
 @isTest
 private class DataSummaryFieldHandler_test {
     
-    @isTest static void test_all(){
+    @isTest static void test_all(){ 
         Data_Summary__c ds = new Data_Summary__c(Parent_Object__c='Account', Child_Object__c='Contact', Snapshot_Object__c='opportunity');
         insert ds;
 

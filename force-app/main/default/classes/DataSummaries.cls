@@ -414,7 +414,7 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
     public void saveSnap(id parentID, string targetField, object value){
         if (parentID == null || targetField == null ) return;
         sObject snap = Snapshots.get(parentID) ; 
-        snap.put(targetField, value);
+        snap.put(targetField, value); 
         Snapshots.put(parentID, snap);
     }
 

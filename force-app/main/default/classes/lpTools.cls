@@ -36,7 +36,7 @@ public with sharing class lpTools {
 
 
 	public static integer runCounter(){
-	    runCount++;
+	    runCount++; 
 		return runCount;
     }
 

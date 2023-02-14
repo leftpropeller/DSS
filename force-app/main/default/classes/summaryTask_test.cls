@@ -1,7 +1,7 @@
 //  Steve Berley - steve@leftpropeller.com
 @isTest
 public class summaryTask_test {
-    public static set<string> frequencies = new set<string>{ 'Daily - Current', 'Daily - Previous', 'Monthly - Current', 'Monthly - Previous', 'Quarterly - Current', 'Quarterly - Previous', 'Yearly - Current', 'Yearly - Previous', 'FY - Current', 'FY - Previous', 'Last 12 Months'};
+    public static set<string> frequencies = new set<string>{ 'Daily - Current', 'Daily - Previous', 'Monthly - Current', 'Monthly - Previous', 'Quarterly - Current', 'Quarterly - Previous', 'Yearly - Current', 'Yearly - Previous', 'FY - Current', 'FY - Previous', 'Last 12 Months'}; 
     
 
     @isTest public static void test_invocable(){

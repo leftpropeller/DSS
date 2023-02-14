@@ -14,7 +14,7 @@ private with sharing class DataSummaryHandler_test {
     }
 
     // @isTest private static void test_setDefaultTimestamp(){
-    //     Data_Summary__c ds = new Data_Summary__c(timestamp__c = '', where_clause__c = 'date__c = last_month '); 
+    //     Data_Summary__c ds = new Data_Summary__c(timestamp__c = '', where_clause__c = 'date__c = last_month ');  
     //     insert ds;
 
     //     ds.where_clause__c = 'date__c != null';

@@ -309,7 +309,7 @@ global class summaryTask implements Schedulable {
             if ( !string.isBlank(f.target_field__c) ){
                 fieldSpecs.put(f.target_field__c, f);    
             }
-        }
+        } 
         return fieldSpecs;
     }
     

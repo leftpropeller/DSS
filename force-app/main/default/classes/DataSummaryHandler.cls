@@ -14,7 +14,7 @@ public with sharing class DataSummaryHandler {
         if ( !string.isBlank(ds.LeftProp_DSS__Parent_Object__c) && string.isBlank(ds.LeftProp_DSS__Child_Object__c)){
             ds.LeftProp_DSS__Child_Object__c = ds.LeftProp_DSS__Parent_Object__c;
         }
-        else if ( string.isBlank(ds.LeftProp_DSS__Parent_Object__c) && !string.isBlank(ds.LeftProp_DSS__Child_Object__c)){ 
+        else if ( string.isBlank(ds.LeftProp_DSS__Parent_Object__c) && !string.isBlank(ds.LeftProp_DSS__Child_Object__c)){  
             ds.LeftProp_DSS__Parent_Object__c = ds.LeftProp_DSS__Child_Object__c;
         }
 
