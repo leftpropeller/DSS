@@ -124,6 +124,7 @@ public class summaryTask_test {
 
 
     @isTest public static void test_detritis(){
+        // exercises the remaining crap we can't remove because it's a managed package
         summaryTask st = new summaryTask(null);
     	st.genQueryTimeString();  
     	st.genSnapshotTimestamp();  
@@ -134,6 +135,7 @@ public class summaryTask_test {
     	st.lastDayOfMonth(date.today());  
     	st.lastDayOfPrevMonth(date.today());  
     	st.runToday(new Data_Summary__c());  
+        string x = st.contextFilter;
 
         summaryTask.getRelInfo('account','contact');  
     }

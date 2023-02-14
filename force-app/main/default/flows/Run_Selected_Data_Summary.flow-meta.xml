@@ -144,7 +144,7 @@
     <formulas>
         <name>TaskStatus</name>
         <dataType>String</dataType>
-        <expression>trim( {!Load_Task_Details.Task_Status__c})</expression>
+        <expression>if (len({!Load_Task_Details.Task_Status__c}) = 5 &amp;&amp; left( {!Load_Task_Details.Task_Status__c} , 5) = &apos;Ready&apos;, &apos;Ready&apos;, if (len({!Load_Task_Details.Task_Status__c}) = 14 &amp;&amp;  left({!Load_Task_Details.Task_Status__c}, 10) = &apos;Not Active&apos;, &apos;Not Active&apos;, &apos;something else&apos; ) )</expression>
     </formulas>
     <formulas>
         <name>TimeString</name>

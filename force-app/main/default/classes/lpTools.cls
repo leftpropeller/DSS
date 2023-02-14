@@ -141,8 +141,8 @@ public with sharing class lpTools {
 
 
 	public static string getFieldType(string obj, string field){
-		if (obj == null || field == null) return null;
 		string ret = '';
+		if (string.isblank(obj) || string.isblank(field)) return ret;
 		Map<String, Schema.SObjectType> objects = Schema.getGlobalDescribe(); 
 		if ( !objects.containsKey(obj) ) ret = 'Object does not exist: ' + obj.toLowerCase().capitalize();
 		else {

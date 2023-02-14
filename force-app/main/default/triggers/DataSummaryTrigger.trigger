@@ -5,10 +5,8 @@ trigger DataSummaryTrigger on Data_Summary__c (before insert, before update, bef
     
     if(trigger.isBefore && !trigger.isDelete ) {
         for (data_summary__c ds : trigger.new) {
-            DataSummaryHandler.autoSetVals(ds);
-
-            // if (trigger.isInsert) DataSummaryHandler.setDefaultTimestamp(ds, null);
-            // else DataSummaryHandler.setDefaultTimestamp(ds, trigger.oldMap.get(ds.id) );  // if trigger is update, pass the previous values 
+            if (trigger.isInsert) DataSummaryHandler.autoSetVals(ds, null);
+            else DataSummaryHandler.autoSetVals(ds, trigger.oldMap.get(ds.id));
         }
     }
 }

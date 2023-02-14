@@ -11,7 +11,7 @@
 &amp;&amp; !isblank(Relationship_Field_Snapshot__c)
 &amp;&amp; !isblank(text(Frequency__c))
 &amp;&amp; Active_Fields__c &gt; 0
-&amp;&amp; (isblank(Child_Object__c) || ( !isblank(Child_Object__c) &amp;&amp; !isblank(Date_Field_on_Child_Record__c) &amp;&amp; !isblank(Child_Relationship_Name__c) &amp;&amp; !isblank(Relationship_Field_Child__c) )) 
+&amp;&amp; (isblank(Child_Object__c) || Child_Object__c = Parent_Object__c || ( !isblank(Child_Object__c) &amp;&amp; !isblank(Date_Field_on_Child_Record__c) &amp;&amp; !isblank(Child_Relationship_Name__c) &amp;&amp; !isblank(Relationship_Field_Child__c) )) 
 , &apos;Ready&apos;, 
 
 if(!Active__c, &apos;Not Active&apos; +br(), &apos;&apos;)
