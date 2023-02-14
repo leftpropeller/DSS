@@ -8,10 +8,12 @@
 &amp;&amp; !isblank(Snapshot_Object__c) 
 &amp;&amp; !isblank(Snapshot_Date_Field__c)
 &amp;&amp; !isblank(Snapshot_Relationship_Name__c)
-&amp;&amp; !isblank(Relationship_Field_Snapshot__c)
+&amp;&amp; (!isblank(Relationship_Field_Snapshot__c) )
 &amp;&amp; !isblank(text(Frequency__c))
 &amp;&amp; Active_Fields__c &gt; 0
-&amp;&amp; (isblank(Child_Object__c) || ( !isblank(Child_Object__c) &amp;&amp; !isblank(Date_Field_on_Child_Record__c) &amp;&amp; !isblank(Child_Relationship_Name__c) &amp;&amp; !isblank(Relationship_Field_Child__c) )) 
+&amp;&amp; ( isblank(Child_Object__c) || Child_Object__c = Parent_Object__c || ( !isblank(Child_Object__c) 
+&amp;&amp; (!isblank(Date_Field_on_Child_Record__c) || Parent_Object__c = Child_Object__c)
+&amp;&amp; !isblank(Child_Relationship_Name__c) &amp;&amp; !isblank(Relationship_Field_Child__c) ) ) 
 , &apos;Ready&apos;, 
 
 if(!Active__c, &apos;Not Active&apos; +br(), &apos;&apos;)
@@ -23,7 +25,7 @@ if(!Active__c, &apos;Not Active&apos; +br(), &apos;&apos;)
 + if (isblank(Snapshot_Relationship_Name__c), &apos;Needs Snapshot Relationship Name&apos;+br() , &apos;&apos; )
 + if (isblank(Relationship_Field_Snapshot__c), &apos;Needs Relationship Field (on Snapshot)&apos;+br() , &apos;&apos; )
 +if (isblank(Child_Object__c), &apos;&apos;,
-if (isblank(Date_Field_on_Child_Record__c), &apos;Needs Date Field on Child Record&apos; +br(), &apos;&apos; )
+if ((isblank(Date_Field_on_Child_Record__c) &amp;&amp; Parent_Object__c != Child_Object__c), &apos;Needs Date Field on Child Record&apos; +br(), &apos;&apos; )
 + if (isblank(Child_Relationship_Name__c), &apos;Needs Child Relationship Name&apos;+br() , &apos;&apos; )
 + if (isblank(Relationship_Field_Child__c), &apos;Needs Relationship Field (on Child)&apos; , &apos;&apos; ) ) )</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>

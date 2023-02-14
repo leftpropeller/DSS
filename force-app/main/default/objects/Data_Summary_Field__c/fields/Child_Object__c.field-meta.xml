@@ -3,7 +3,7 @@
     <fullName>Child_Object__c</fullName>
     <deprecated>false</deprecated>
     <externalId>false</externalId>
-    <formula>Summary__r.Child_Object__c</formula>
+    <formula>if (!isblank(Summary__r.Child_Object__c), Summary__r.Child_Object__c, Summary__r.Parent_Object__c)</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <inlineHelpText>The Child Object, as set on the Summary Task</inlineHelpText>
     <label>Child Object (as set on the task)</label>

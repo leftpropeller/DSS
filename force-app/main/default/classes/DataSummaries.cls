@@ -18,9 +18,13 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
 
     public Database.QueryLocator start(Database.BatchableContext BC) {
         counter++;
+
+        // below uses st.parentFilterQuery to create a set of record ids for filtering the parent query
+        // why not use a query in an inner join? Some objects don't allow being in the inner join query, notably Tasks
+        getParentIDs(database.query(st.parentFilterQuery), st.relFieldChild);
         string q = st.parentQuery;  
         if ( st.pass == summaryTask.pass2 ) {
-            getParentIDs(database.query(q));    
+            getParentIDs(database.query(q), 'id');    
             q = st.outliersQuery; 
         }
 
@@ -45,7 +49,7 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
     public void finish(Database.BatchableContext BC) {
         if (counter > 10) return;
 
-        if ( st.pass == summaryTask.pass1 ){      
+        if ( st.ClearOutliers && st.pass == summaryTask.pass1 ){      
             st.pass = summaryTask.pass2;  // if it was running the first pass, start the second which processes the outliers.
             startNow(st);
         } 
@@ -66,65 +70,64 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
 
     public void runSnapshots(List<sObject> scope){
         // scope is a list of parent records 
-        list<sObject> recsToUpdate = new list<sObject>();
+        map<id, sObject> recsToUpdate = new map<id, sObject>();
+        // list<sObject> recsToUpdate = new list<sObject>();
 
-        getParentIDs(scope);  // load the parentIDs for the provided scope
-        
-        // for (sobject so : scope) parentIDs.add( (id) so.get('id'));
-        getSnapshotRecords(scope);  
-        getChildRecords(scope);
+        getParentIDs(scope, 'id');  // load the parentIDs for the provided scope       
+        getSnapshotRecords();  
+        getChildRecords();
 
         for (sObject parent : scope){
-            List<sObject> children;          
-            if ( childMap == null || childMap.size() == 0 || !childMap.containsKey(parent.id) ) continue;
-            children = childMap.get(parent.id);
+            id parentID = parent.id;
 
+            if ( childMap == null || childMap.size() == 0 || !childMap.containsKey(parentID) ) continue;
+            List<sObject> children = childMap.get(parentID);
+    
             for (string field : st.fieldSpecs.keySet()){
                 Data_Summary_Field__c f = st.fieldSpecs.get(field);
                 string action = f.How_to_Summarize__c.toLowerCase();
-                if (action.contains('copy') || action.contains('echo')) doEcho(parent, children, f, action);
-                if (action == 'count') doCount(parent, children, f);
-                if (action == 'sum') doSum(parent, children, f);
-                if (action == 'max') doMax(parent, children, f);
-                if (action == 'min') doMin(parent, children, f);
-                if (action == 'average') doAvg(parent, children, f);
-                if (action == 'oldest value') doOldestValue(parent, children, f);
-                if (action == 'newest value') doNewestValue(parent, children, f);
-                if (action == 'median') doMedian(parent, children, f);
-                if (action.tolowercase().contains('unique values')) doUniques(parent, children, f, action);
-                if (action.tolowercase().contains('standard deviation')) doStdDev(parent, children, f, action);
+                if (action.contains('copy') || action.contains('echo')) doEcho(parentID, children, f, action);
+                if (action == 'count') doCount(parentID, children, f);
+                if (action == 'sum') doSum(parentID, children, f);
+                if (action == 'max') doMax(parentID, children, f);
+                if (action == 'min') doMin(parentID, children, f);
+                if (action == 'average') doAvg(parentID, children, f);
+                if (action == 'oldest value') doOldestValue(parentID, children, f);
+                if (action == 'newest value') doNewestValue(parentID, children, f);
+                if (action == 'median') doMedian(parentID, children, f);
+                if (action.tolowercase().contains('unique values')) doUniques(parentID, children, f, action);
+                if (action.tolowercase().contains('standard deviation')) doStdDev(parentID, children, f, action);
                 // if (action == 'set specific value') doSetValue(parent, children, f);
             }
-            recsToUpdate.add( Snapshots.get(parent.id) );
+            recsToUpdate.put(parentID, Snapshots.get(parentID) );
         } 
-
         string processName = 'DataSummaries.runSummaries';
         if (st.name != null) processName += ' [' + st.name + ']';
-        lpTools.saveList('upsert', recsToUpdate, processName);
+        lpTools.saveList('upsert', recsToUpdate.values(), processName);
     }
   
    
     //  --------  Analysis methods below
 
 
-    public void doEcho(sObject parent, List<sObject> children, Data_Summary_Field__c f, string action) {        
+    public void doEcho(id parentID, List<sObject> children, Data_Summary_Field__c f, string action) {        
         string sourceField = string.valueOf( f.get('source_field__c') );
         Object echo = null;
         for (sObject child : children) {
             echo = getValue(st, child, sourceField);
         }
-        saveSnap(parent.id, f.target_field__c, echo);
+        saveSnap(parentID, f.target_field__c, echo);
     }
     
     
-    public void doCount(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+    public void doCount(id parentID, List<sObject> children, Data_Summary_Field__c f) {
         integer count = 0;
         if (children != null ) count = children.size();
-        saveSnap(parent.id, f.target_field__c, count);
+        saveSnap(parentID, f.target_field__c, count);
     }
     
     
-    public void doUniques(sObject parent, List<sObject> children, Data_Summary_Field__c f, string action) {
+    public void doUniques(id parentID, List<sObject> children, Data_Summary_Field__c f, string action) {
         if (string.isblank(action)) action = 'count unique values';
         string sourceField = string.valueOf( f.get('source_field__c') );
         integer count = 0;
@@ -141,46 +144,70 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
             result = uniques.toString().replace('{','').replace('}','');
         }
         else result = uniques.size();
-        saveSnap(parent.id, f.target_field__c, result);
+        saveSnap(parentID, f.target_field__c, result);
     }
 
    
-    public void doSum(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+    public void doSum(id parentID, List<sObject> children, Data_Summary_Field__c f) {
         string sourceField = string.valueOf( f.get('source_field__c') );
         decimal sum = 0;
         for (sObject child : children) {
-            object val = getValue(st, child, sourceField);
-            if (val != null && string.valueOf(val).isNumeric()) sum += (decimal) val;
+            string val = string.valueOf(getValue(st, child, sourceField));
+            if (!string.isblank(val) && val.replace('.', '').isNumeric()) sum += decimal.valueOf(val);
         }
-        saveSnap(parent.id, f.target_field__c, sum);
+        saveSnap(parentID, f.target_field__c, sum);
     }
   
     
-    public void doMax(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+    public void doMax(id parentID, List<sObject> children, Data_Summary_Field__c f) {
         string sourceField = string.valueOf( f.get('source_field__c') );
 
         object max;
         for (sObject child : children){
             object val = getValue(st, child, sourceField);
-            if (max == null || string.valueOf(val) > string.valueOf(max) ) max = val;
+            string maxString = string.valueOf(max);
+            string valString = string.valueOf(val);
+
+            if (valString.isNumeric() ){
+                // evaluate as a decimal 
+                if (max == null || decimal.valueOf(valString) > decimal.valueOf(maxString) ) max = val;
+            }
+
+            else {
+                // evaluate as a string
+                if (max == null || valString > maxString ) max = val;
+            }        
         }
-        saveSnap(parent.id, f.target_field__c, max);
+        saveSnap(parentID, f.target_field__c, max);
     }  
   
     
-    public void doMin(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+    public void doMin(id parentID, List<sObject> children, Data_Summary_Field__c f) {
+        // the hoops below are to make it work correctly with generics object regardless
+        // of whether the values are numeric or not
         string sourceField = string.valueOf( f.get('source_field__c') );
 
         object min;
         for (sObject child : children){
             object val = getValue(st, child, sourceField);
-            if (min == null || string.valueOf(val) < string.valueOf(min) ) min = val;
+            string minString = string.valueOf(min);
+            string valString = string.valueOf(val);
+
+            if (valString.isNumeric() ){
+                // evaluate as a decimal 
+                if (min == null || decimal.valueOf(valString) < decimal.valueOf(minString) ) min = val;
+            }
+
+            else {
+                // evaluate as a string
+                if (min == null || valString < minString ) min = val;
+            }
         }
-        saveSnap(parent.id, f.target_field__c, min);
+        saveSnap(parentID, f.target_field__c, min);
     }  
 
 
-    public void doAvg(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+    public void doAvg(id parentID, List<sObject> children, Data_Summary_Field__c f) {
         string sourceField = string.valueOf( f.get('source_field__c') );
         decimal count = 0;
         decimal sum = 0;
@@ -194,11 +221,11 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
 
         decimal avg = 0;
         if ( count > 0 ) avg = sum / count;
-        saveSnap(parent.id, f.target_field__c, avg);
+        saveSnap(parentID, f.target_field__c, avg);
     } 
 
 
-    public void doOldestValue(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+    public void doOldestValue(id parentID, List<sObject> children, Data_Summary_Field__c f) {
         if (string.isBlank(st.childRecDateField)) return;
         string sourceField = string.valueOf( f.get('source_field__c') );
         date bestDate;
@@ -211,11 +238,11 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
                 bestValue = getValue(st, child, sourceField);
             }
         }
-        saveSnap(parent.id, f.target_field__c, bestValue);
+        saveSnap(parentID, f.target_field__c, bestValue);
     }    
 
 
-    public void doNewestValue(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+    public void doNewestValue(id parentID, List<sObject> children, Data_Summary_Field__c f) {
         if (string.isBlank(st.childRecDateField)) return;
         string sourceField = string.valueOf( f.get('source_field__c') );
         date bestDate;
@@ -228,11 +255,11 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
                 bestValue = getValue(st, child, sourceField);
             }
         }
-        saveSnap(parent.id, f.target_field__c, bestValue);
+        saveSnap(parentID, f.target_field__c, bestValue);
     } 
 
     
-    public void doStdDev(sObject parent, List<sObject> children, Data_Summary_Field__c f, string action) {
+    public void doStdDev(id parentID, List<sObject> children, Data_Summary_Field__c f, string action) {
         boolean SampleApproach = false;
         if ( !string.isBlank(action) && action.toLowerCase().contains('sample') ) SampleApproach = true;
 
@@ -255,11 +282,11 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         if ( denom > 0 ){
             stdDev = math.sqrt( sumOfDiffs / denom );
         }
-        saveSnap(parent.id, f.target_field__c, stdDev);
+        saveSnap(parentID, f.target_field__c, stdDev);
     }
 
     
-    public void doMedian(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+    public void doMedian(id parentID, List<sObject> children, Data_Summary_Field__c f) {
         if (children == null || children.size()==0) return;
         string sourceField = string.valueOf( f.get('source_field__c') );
         list<decimal> vals = new list<decimal>();
@@ -282,11 +309,11 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
             // Ex: if there are 6 items it's average of elements 3 and 4. 
             median = (vals[medianIndex] + vals[medianIndex+1] ) / 2;
         }       
-        saveSnap(parent.id, f.target_field__c, median);
+        saveSnap(parentID, f.target_field__c, median);
     }  
 
    
-    // public void doSetValue(sObject parent, List<sObject> children, Data_Summary_Field__c f) {
+    // public void doSetValue(id parentID, List<sObject> children, Data_Summary_Field__c f) {
     //     if ( string.isblank(f.Target_Field_Type__c) || children == null || children.size() == 0 )  return;
     //     object val;
 
@@ -301,18 +328,20 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
     //             val = string.valueOf( f.get('Specific_Value_to_Set__c') );
     //         }
     //     }
-    //     saveSnap(parent.id, f.target_field__c, val);
+    //     saveSnap(parentID, f.target_field__c, val);
     // }
 
     //  --------  Helper methods below
 
 
-    public void getSnapshotRecords(List<sObject> scope){
+    public void getSnapshotRecords(){
         // loads all existing snapshot records for the scope and creates any additional ones that are needed
-        if (scope == null || scope.size() == 0 || parentIDs == null || parentIDs.size() == 0) return;
+        if (parentIDs == null || parentIDs.size() == 0) return;
 
         // re-init with each new batch - map <parent id, snap record>
         Snapshots = new map <id, sObject>();
+
+        // clone the IDs so we can create a destructive list of work completed
         set<id> idClones = new set<id>();
         idClones.addAll(parentIDs);
         
@@ -353,13 +382,15 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
     }
 
 
-    public set<id> getParentIDs(list<sObject> scope){
-        for (sObject so : scope) parentIDs.add( (id) so.get('id'));
+    public set<id> getParentIDs(list<sObject> scope, string field){
+        if (scope == null || scope.size() == 0 || string.isBlank(field)) return null;
+        parentIDs = new set<id>();
+        for (sObject so : scope) parentIDs.add( (id) so.get(field) );
         return parentIDs;
     }
 
 
-    public map<id, list<sObject>> getChildRecords(List<sObject> parents){
+    public map<id, list<sObject>> getChildRecords(){
         // while you'd be tempted to use a parent-child query in place of this less elegant appraoch, you'd ultimately find that 
         // Salesforce starts throwing "invalid query locator" and "Aggregate query has too many rows..." errors if the child query 
         // yields too many rows.  So, while not the most elegant, the approach taken is more robust in real-world Salesforce.
@@ -367,14 +398,14 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         // returns map<parentID, list<child records>>   
         
         childMap = new map<id, list<sObject>>();
-        if ( string.isBlank(st.childObj) || string.isBlank(st.childQuery) ) return childMap;  // no child object specified - nothing to query
 
         for (sObject child : database.query(st.childQuery)){
-            id key = id.valueOf( (string) child.get(st.relFieldChild));  // key = id of parent record
-            if ( !childMap.containsKey(key) ) childMap.put(key, new list<sObject>());
-            list<sObject> childRecsList = childMap.get(key);
+            id parentID = getParentID(child);
+
+            if ( !childMap.containsKey(parentID) ) childMap.put(parentID, new list<sObject>());
+            list<sObject> childRecsList = childMap.get(parentID);
             childRecsList.add(child);
-            childMap.put( key, childRecsList );
+            childMap.put( parentID, childRecsList );
         }
         return childMap;
     }    
@@ -383,12 +414,12 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
     public void saveSnap(id parentID, string targetField, object value){
         if (parentID == null || targetField == null ) return;
         sObject snap = Snapshots.get(parentID) ; 
-        snap.put(targetField, value);
+        snap.put(targetField, value); 
         Snapshots.put(parentID, snap);
     }
 
 
-    public object getValue(summaryTask st, sObject so, string field){
+    public object getValue(summaryTask st, sObject so, string field){ 
         string dot = '.';
         object val;
 
@@ -418,5 +449,17 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
             if (f.How_to_Null__c == 'blank') nulling = '';
         }
         return nulling;
+    }
+
+
+    public id getParentID(sobject child){
+        if (child == null) return null;
+        boolean parentmode = false;
+        if ( string.isBlank(st.childObj) || st.childObj == st.parentObj ) ParentMode = true;  
+
+        id parentID;
+        if (ParentMode) parentID = id.valueOf( (string) child.get('id'));  //  snapshotting the parent object
+        else parentID = id.valueOf( (string) child.get(st.relFieldChild));  // id of parent record
+        return parentID;
     }
 }

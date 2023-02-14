@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Clear_Outliers__c</fullName>
+    <defaultValue>false</defaultValue>
+    <deprecated>false</deprecated>
+    <externalId>false</externalId>
+    <inlineHelpText>Let&apos;s say you&apos;re tracking the number of opps created this month for an account.  If an account had just one opp created during the month and that opp was subsequently deleted, still during the month, the count could be wrong.  Setting this true, clears them out.  Set this false you have multiple tasks touching the same fields otherwise your data may be fouled.  USE ONLY IN SIMPLE SITUATIONS.  WHEN IN DOUBT, LEAVE BLANK.  See documentation at http://LeftPropeller.com/DSS</inlineHelpText>
+    <label>Clear Outliers When Done (see help)</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

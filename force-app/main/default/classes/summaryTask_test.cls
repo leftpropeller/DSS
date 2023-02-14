@@ -1,7 +1,7 @@
 //  Steve Berley - steve@leftpropeller.com
 @isTest
 public class summaryTask_test {
-    public static set<string> frequencies = new set<string>{ 'Daily - Current', 'Daily - Previous', 'Monthly - Current', 'Monthly - Previous', 'Quarterly - Current', 'Quarterly - Previous', 'Yearly - Current', 'Yearly - Previous', 'FY - Current', 'FY - Previous', 'Last 12 Months'};
+    public static set<string> frequencies = new set<string>{ 'Daily - Current', 'Daily - Previous', 'Monthly - Current', 'Monthly - Previous', 'Quarterly - Current', 'Quarterly - Previous', 'Yearly - Current', 'Yearly - Previous', 'FY - Current', 'FY - Previous', 'Last 12 Months'}; 
     
 
     @isTest public static void test_invocable(){
@@ -34,7 +34,7 @@ public class summaryTask_test {
 
     @isTest public static void summary_test(){
         id taskID = createSummaryObjInTask(null);
-        createSummaryPlan(taskID);
+        createSummaryPlan(taskID); 
         // createSummaryPlan( createSummaryObjInTask(null) );
  
         test.startTest();
@@ -124,6 +124,7 @@ public class summaryTask_test {
 
 
     @isTest public static void test_detritis(){
+        // exercises the remaining crap we can't remove because it's a managed package
         summaryTask st = new summaryTask(null);
     	st.genQueryTimeString();  
     	st.genSnapshotTimestamp();  
@@ -134,6 +135,7 @@ public class summaryTask_test {
     	st.lastDayOfMonth(date.today());  
     	st.lastDayOfPrevMonth(date.today());  
     	st.runToday(new Data_Summary__c());  
+        string x = st.contextFilter;
 
         summaryTask.getRelInfo('account','contact');  
     }
@@ -200,6 +202,7 @@ public class summaryTask_test {
         ds.Snapshot_Date_Field__c = 'closedate';
         ds.where_clause__c = 'lastname != null';
         ds.active__c = true;
+        ds.Clear_Outliers__c = true;
         insert ds;
         return ds.id;
     }

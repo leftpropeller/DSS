@@ -3,7 +3,7 @@
     <fullName>Target_Field_Type_display__c</fullName>
     <deprecated>false</deprecated>
     <externalId>false</externalId>
-    <formula>Target_Field_Type__c</formula>
+    <formula>if( isblank(Target_Field_Type__c), &apos;Target field missing&apos;, Target_Field_Type__c)</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <inlineHelpText>The datatype of the selected target field, or an error message (automatic)</inlineHelpText>
     <label>Target Field Type</label>

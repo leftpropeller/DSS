@@ -3,6 +3,7 @@
     <fullName>Snapshot_Date_Field__c</fullName>
     <deprecated>false</deprecated>
     <externalId>false</externalId>
+    <inlineHelpText>The field on the snapshot record containing the date of the analysis</inlineHelpText>
     <label>Snapshot Date Field (on snapshot object)</label>
     <length>255</length>
     <required>false</required>

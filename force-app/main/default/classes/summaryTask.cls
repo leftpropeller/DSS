@@ -37,6 +37,15 @@ global class summaryTask implements Schedulable {
     global id taskID; 
     global string name;
 
+    // parentFilterQuery is used to keep the parent query focused only on the relevant records
+    // why not use a query in an inner join? Some objects don't allow being in the inner join query, notably Tasks
+    global string parentFilterQuery{
+        get {
+            if (string.isBlank(parentFilterQuery)) genParentFilterQuery();
+            return parentFilterQuery;
+        } set;
+    }     
+
     // parentQuery pulls all parent records that are relevant to the task at hand
     global string parentQuery{
         get {
@@ -83,15 +92,6 @@ global class summaryTask implements Schedulable {
         } set;
     }
 
-    // contextFilter is the part of a where clause used to ensure we're only looking at the correct subset of parent or snapshot 
-    // records based on the tasks' paraemters.  It's impact is it keeps the execution efficient.
-    global string contextFilter{
-        get {
-            if (string.isBlank(contextFilter)) genContextFilter();
-            return contextFilter;
-        } set;
-    }
-    
     global Data_Summary__c ds;
     global string parentObj;
     global string childObj;
@@ -101,13 +101,14 @@ global class summaryTask implements Schedulable {
     global string frequency;
     global date snapDate;
     global string snapDateField;
-    global string relFieldChild;  
+    global string relFieldChild; 
     global string relFieldSnap;  
     global string whereClause;
     global string taskStatus;
     global integer batchSize = 50;
     global string pass = pass1;
     global boolean runSnapshots = true;
+    global boolean ClearOutliers = false;
     global boolean EchoMode = false;
     global boolean runningSpecifiedTask = false;
     global boolean specifiedSnapDate = false;
@@ -234,9 +235,11 @@ global class summaryTask implements Schedulable {
         if (taskID == null) return;
         integer maxLen = 131072;
         Data_Summary__c t = new Data_Summary__c (id=taskID, Last_Started__c=datetime.now());
+
         // to make debugging easier, below saves the last used queries to hidden fields in the task
         if (!string.isblank(childQuery)) t.debug_Child_Query__c = childQuery.abbreviate(maxLen);
         if (!string.isblank(parentQuery)) t.debug_Parent_Query__c = parentQuery.abbreviate(maxLen);
+        if (!string.isblank(parentQuery)) t.debug_Parent_Filter_Query__c = parentFilterQuery.abbreviate(maxLen);
         if (!string.isblank(snapQuery)) t.debug_Snapshot_Query__c = snapQuery.abbreviate(maxLen);
         if (!string.isblank(outliersQuery)) t.debug_Outliers_Query__c = outliersQuery.abbreviate(maxLen);
         lpTools.saveRec('update', t, 'summaryTask.completedTask');
@@ -291,6 +294,8 @@ global class summaryTask implements Schedulable {
             snapDate = ds.Snapshot_As_Of_Date__c;
         }
 
+        if (ds.Clear_Outliers__c) ClearOutliers = true;
+
         fieldSpecs = loadFieldSpecs(ds);
 
         return this;
@@ -304,23 +309,63 @@ global class summaryTask implements Schedulable {
             if ( !string.isBlank(f.target_field__c) ){
                 fieldSpecs.put(f.target_field__c, f);    
             }
-        }
+        } 
         return fieldSpecs;
     }
     
     
     global string genParentQuery(){
-        // generates the query that pulls set of relevant parent records for the summarization process.  
-        // Querying the actual child records happens elsewhere.  This is done so all child records are pulled at once for a given parent.
+        // Generates the query that pulls the relevant set of relevant parent records for the summarization process.
 
-        parentQuery = selectStr + ' id  ' + fromStr + parentObj;
-        if ( parentObj == childObj || string.isBlank(childObj)) {
-            if (!string.isBlank(whereClause)) parentQuery += whereStr + whereClause;
-        }
-        else if (!string.isBlank(contextFilter)) parentQuery += whereStr + 'id' + inStr + contextFilter;
+        parentQuery =  selectStr + ' id ' ;
+        parentQuery += fromStr + parentObj;
+        parentQuery += whereStr + ' id ' + inStr + parentIDsStr;
         return parentQuery;
     }
     
+    
+    global string genParentFilterQuery(){
+        // Generates the query that pulls the relevant set of relevant parent records for the summarization process.
+
+        // below keeps it both safe and lazy, all in one line
+        if (relFieldChild == null || childObj == null) return '';
+
+        parentFilterQuery =  selectStr + relFieldChild;
+        parentFilterQuery += fromStr + childObj;
+        if ( !string.isBlank(whereClause) ) { 
+            parentFilterQuery += whereStr + whereClause ;
+            if (!String.isBlank(childQueryTimeFilter)) parentFilterQuery += andStr + childQueryTimeFilter;
+        }
+        else if (!String.isBlank(childQueryTimeFilter)) parentFilterQuery += whereStr + childQueryTimeFilter;
+        return parentFilterQuery;
+    }
+    
+
+    global string genChildQuery(){
+        // childQuery pulls all of the relevant child records for a given set of parents.  these are the records to be analyzed
+        // uses the set to make sure no field is added to the query more than once
+        set<string> fieldNames = new set<string>{'id'};  
+        if (!string.isBlank(relFieldChild)) fieldNames.add(relFieldChild);
+        if (!string.isBlank(childRecDateField)) fieldNames.add(childRecDateField);
+        for (Data_Summary_Field__c f : fieldSpecs.values()) fieldnames.add(f.Source_Field__c);  
+
+        childQuery= selectStr + setToString(fieldNames);
+
+        if (!string.isBlank(childObj)) {
+            // when there's a child object - the typical scenario - query that object
+            childQuery += fromStr + childObj;
+            childQuery  +=  whereStr + relFieldChild + inStr + parentIDsStr;    
+        }
+        else {
+            // when the child object is blank then the query is actually of the parent object
+            childQuery += fromStr + parentObj;
+            childQuery  +=  whereStr + ' id ' + inStr + parentIDsStr;
+        }
+        if ( !string.isBlank(whereClause) ) childQuery += andStr + whereClause;
+        if ( !string.isBlank(childRecDateField) && !string.isBlank(frequency)) childQuery += andStr + childQueryTimeFilter;
+        return childQuery;
+    }
+
 
     global string genSnapQuery(Data_Summary__c ds){
         // snapQuery finds the records already existing in the snapshot object.  the query result is used 
@@ -342,57 +387,7 @@ global class summaryTask implements Schedulable {
 
         // oq = oq.removeStart(andStr);
 
-
-        
         return snapQuery;
-    }
-
-
-    global string genContextFilter(){
-        // the contextFilter limits the records to be processed to those in the correct context based on the parent object id
-        // in the following: SELECT id FROM contact WHERE id IN ( SELECT Contact__c FROM Country_Visited__c WHERE date__c = THIS_MONTH )
-        // the sub query inside the WHERE IN (xxx) is the filter query.
-        // in the example its: SELECT Contact__c FROM Country_Visited__c WHERE date__c = THIS_MONTH
-
-        // below keeps it both safe and lazy, all in one line
-        if (relFieldChild == null || childObj == null) return '';
-
-        contextFilter = parenOpen + selectStr + relFieldChild;
-        contextFilter += fromStr + childObj;
-        if ( !string.isBlank(whereClause) ) { 
-            contextFilter += whereStr + whereClause ;
-            if (!String.isBlank(childQueryTimeFilter)) contextFilter += andStr + childQueryTimeFilter;
-        }
-        else if (!String.isBlank(childQueryTimeFilter)) contextFilter += whereStr + childQueryTimeFilter;
-        
-        contextFilter += parenClose;
-        return contextFilter;
-    }
-    
-
-    global string genChildQuery(){
-        // childQuery pulls all of the relevant child records for a given set of parents.  these are the records to be analyzed
-        // uses the set to make sure no field is added to the query more than once
-        set<string> fieldNames = new set<string>{'id'}; 
-        if (!string.isBlank(relFieldChild)) fieldNames.add(relFieldChild);
-        if (!string.isBlank(childRecDateField)) fieldNames.add(childRecDateField);
-        for (Data_Summary_Field__c f : fieldSpecs.values()) fieldnames.add(f.Source_Field__c);  
-
-        childQuery= selectStr + setToString(fieldNames);
-
-        if (!string.isBlank(childObj)) {
-            // when there's a child object - the typical scenario - query that object
-            childQuery += fromStr + childObj;
-            childQuery  +=  whereStr + relFieldChild + inStr + parentIDsStr;    
-        }
-        else {
-            // when the child object is blank then the query is actually of the parent object
-            childQuery += fromStr + parentObj;
-            childQuery  +=  whereStr + ' id ' + inStr + parentIDsStr;
-        }
-        if ( !string.isBlank(whereClause) ) childQuery += andStr + whereClause;
-        if ( !string.isBlank(childRecDateField) && !string.isBlank(frequency)) childQuery += andStr + childQueryTimeFilter;
-        return childQuery;
     }
 
 
@@ -518,7 +513,7 @@ global class summaryTask implements Schedulable {
 
     global string genTaskQuery(id taskID){
         // generates the query string used for querying tasks (data_summary_c records) to be processed
-        string q = 'SELECT id, Parent_Object__c, Child_Object__c, Child_Relationship_Name__c, Last_Completed__c, Snapshot_Object__c, Name,  Snapshot_Date_Field__c, Snapshot_mode__c, Echo_Mode__c, Relationship_Field_Child__c, Frequency__c, Where_Clause__c, Process_Data__c, Delay_Months__c, Delay_Days__c, batch_size__c, Relationship_Field_Snapshot__c, Snapshot_As_Of_Date__c, Date_Field_on_Child_Record__c, Task_Status__c, ( SELECT Source_Field__c, Target_Field__c, Reset_Value_After_Snapshot__c, Target_Field_Type__c, How_to_Summarize__c, How_to_Null__c, Specific_Value_to_Set__c FROM Data_Summary_Fields__r WHERE Field_Status__c = :ready) FROM Data_Summary__c  '; 
+        string q = 'SELECT id, Parent_Object__c, Child_Object__c, Child_Relationship_Name__c, Last_Completed__c, Snapshot_Object__c, Name,  Snapshot_Date_Field__c, Snapshot_mode__c, Echo_Mode__c, Relationship_Field_Child__c, Frequency__c, Where_Clause__c, Process_Data__c, Delay_Months__c, Delay_Days__c, batch_size__c, Relationship_Field_Snapshot__c, Snapshot_As_Of_Date__c, Date_Field_on_Child_Record__c, Task_Status__c, Clear_Outliers__c, ( SELECT Source_Field__c, Target_Field__c, Reset_Value_After_Snapshot__c, Target_Field_Type__c, How_to_Summarize__c, How_to_Null__c, Specific_Value_to_Set__c FROM Data_Summary_Fields__r WHERE Field_Status__c = :ready) FROM Data_Summary__c  '; 
         
         string filterClause = ' WHERE Task_Status__c = :ready  AND Last_Completed__c != TODAY AND LeftProp_DSS__Active_Fields__c > 0';
 
@@ -536,14 +531,16 @@ global class summaryTask implements Schedulable {
     global static string tuneWhereClause(string whereClause){
         if (string.isBlank(whereClause)) return null;
 
-        list<string> capsList = new list<string>{'and', 'or', 'not', 'like', 'in', 'from', 'where', 'null', 'with', 'group by', 'order by', 'desc', 'yesterday', 'today', 'tomorrow', 'last_week', 'this_week', 'next_week', 'last_month', 'this_month', 'next_month', 'last_90_days, next_90_days', 'last_n_days', 'next_n_days', 'next_n_weeks', 'last_n_weeks', 'next_n_months', 'last_n_months', 'this_quarter, last_quarter', 'next_quarter', 'next_n_quarters', 'last_n_quarters', 'this_year', 'last_year', 'next_year', 'next_n_years', 'last_n_years', 'this_fiscal_quarter', 'last_fiscal_quarter', 'next_fiscal_quarter', 'next_n_fiscal_quarters', 'last_n_fiscal_quarters', 'this_fiscal_year', 'last_fiscal_year', 'next_fiscal_year', 'next_n_fiscal_years', 'last_n_fiscal_years'};
+        list<string> capsList = new list<string>{'and', 'or', 'not', 'like', 'in', 'from', 'where', 'null', 'with', 'group by', 'order by', 'desc', 'yesterday', 'today', 'tomorrow', 'last_week', 'this_week', 'next_week', 'last_month', 'this_month', 'next_month', 'last_90_days, next_90_days', 'last_n_days', 'next_n_days', 'next_n_weeks', 'last_n_weeks', 'next_n_months', 'last_n_months', 'this_quarter, last_quarter', 'next_quarter', 'next_n_quarters', 'last_n_quarters', 'this_year', 'last_year', 'next_year', 'next_n_years', 'last_n_years', 'this_fiscal_quarter', 'last_fiscal_quarter', 'next_fiscal_quarter', 'next_n_fiscal_quarters', 'last_n_fiscal_quarters', 'this_fiscal_year', 'last_fiscal_year', 'next_fiscal_year', 'next_n_fiscal_years', 'last_n_fiscal_years', 'select'};
         
         set<string> badQuotes = new set<string> { '’','‘','`','"','“','‟','”','’','’','〝','〞' };
         
         string tuned = '';
+        whereClause = whereClause.trim().toLowerCase().removeStart('where');
+
         list<string> words = new list<string>();
         for (string word : whereClause.trim().split(spaceStr)) {
-            if (word == 'where') continue;  // remove all instances of 'where'
+            // if (word == 'where') continue;  // remove all instances of 'where'
             if ( capsList.contains(word.toLowerCase()) ) words.add(word.toUpperCase());
             else words.add(word);
         }
@@ -629,6 +626,13 @@ global class summaryTask implements Schedulable {
 
     // below are un-needed methods the system won't let go of since we're dealing with a managed package
 
+    global string contextFilter{
+        get {
+            ContextFilter = genContextFilter();
+            return contextFilter;
+        } set;
+    }
+            
     global string genQueryTimeString(){
         return null;
     }
@@ -657,22 +661,11 @@ global class summaryTask implements Schedulable {
         return null;
     }
 
+    global string genContextFilter(){
+        return null;
+    }
+    
     global string genEchoModeQuery(Data_Summary__c ds){
-        // this produces the summary query when running in echo mode
-        // note that it REPLACES the standard parentQuery
-
-        // // uses the set to make sure no field is added to the query more than once
-        // set<string> fieldNames = new set<string>{'id'};       
-        // for (Data_Summary_Field__c dsf : fieldSpecs.values() ){
-        //     if ( !string.isBlank(dsf.Source_Field__c)) { 
-        //         fieldNames.add(dsf.Source_Field__c);  
-        //     }
-        // }     
-
-        // parentQuery = 'SELECT ' + setToString(fieldNames);
-        // parentQuery += ' FROM ' +  ds.Parent_Object__c;
-        // if ( !string.isblank(whereClause)) parentQuery += ' ' + whereClause;
-        // return parentQuery;
         return null;
     }
 }
