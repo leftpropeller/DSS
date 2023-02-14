@@ -34,7 +34,7 @@ public class summaryTask_test {
 
     @isTest public static void summary_test(){
         id taskID = createSummaryObjInTask(null);
-        createSummaryPlan(taskID);
+        createSummaryPlan(taskID); 
         // createSummaryPlan( createSummaryObjInTask(null) );
  
         test.startTest();

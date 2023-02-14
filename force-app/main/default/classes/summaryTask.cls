@@ -344,7 +344,7 @@ global class summaryTask implements Schedulable {
     global string genChildQuery(){
         // childQuery pulls all of the relevant child records for a given set of parents.  these are the records to be analyzed
         // uses the set to make sure no field is added to the query more than once
-        set<string> fieldNames = new set<string>{'id'}; 
+        set<string> fieldNames = new set<string>{'id'};  
         if (!string.isBlank(relFieldChild)) fieldNames.add(relFieldChild);
         if (!string.isBlank(childRecDateField)) fieldNames.add(childRecDateField);
         for (Data_Summary_Field__c f : fieldSpecs.values()) fieldnames.add(f.Source_Field__c);  

@@ -38,3 +38,12 @@ $RECYCLE.BIN/
 
 # Local environment variables
 .env
+
+# Extraneous objects, etc used in development and testing.
+force-app/main/default/objects/Country_Visited__c
+force-app/main/default/objects/delivery__c
+force-app/main/default/objects/life__c
+force-app/main/default/objects/Party__c
+force-app/main/default/objects/Related_Data__c
+force-app/main/default/objects/Snapshot__c
+force-app/main/default/objects/summing_snapshot__c

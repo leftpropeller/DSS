@@ -9,19 +9,19 @@
 &amp;&amp; !isblank(Target_Field__c)
 &amp;&amp; ( CONTAINS(Source_Field__c, &apos;.&apos;) || isblank(Source_Field_Type__c) || (!CONTAINS(lower(Source_Field_Type__c), &apos;object&apos;)
 &amp;&amp; !CONTAINS(lower(Target_Field_Type__c), &apos;object&apos;) ))
-&amp;&amp; ( Source_Field_Type__c = Target_Field_Type__c 
-|| ( text(How_to_Summarize__c) = &apos;Count&apos; &amp;&amp; (  Target_Field_Type__c = &apos;Currency&apos; ||   Target_Field_Type__c = &apos;Double&apos;) )
+&amp;&amp; ( CONTAINS(Source_Field__c, &apos;.&apos;) || Source_Field_Type__c = Target_Field_Type__c 
+|| ( contains(text(How_to_Summarize__c), &apos;Count&apos;) = true &amp;&amp; (  Target_Field_Type__c = &apos;Currency&apos; ||   Target_Field_Type__c = &apos;Double&apos;) )
 || ( (Source_Field_Type__c = &apos;Currency&apos; || Source_Field_Type__c = &apos;Double&apos; ) &amp;&amp; (Target_Field_Type__c = &apos;Currency&apos; || Target_Field_Type__c = &apos;Double&apos; )  )
-), &apos;Ready&apos;,
+|| ( contains(lower(Source_Field_Type__c), &apos;picklist&apos;)  &amp;&amp; Target_Field_Type__c = &apos;String&apos; )), &apos;Ready&apos;,
 
 if(!Active__c, &apos;Not Active&apos; +br(), &apos;&apos;)
 + if (isblank(text(How_to_Summarize__c)), &apos;No Summarization Selected&apos; +br(), &apos;&apos;)
 + if (isblank(Source_Field__c), &apos;Needs Source Field&apos; +br(), &apos;&apos;)
 + if (isblank(Target_Field__c), &apos;Needs Target Field&apos; +br(), &apos;&apos;)
-+ if (CONTAINS(lower(Source_Field_Type__c), &apos;object&apos;) , Source_Field_Type__c +br(), &apos;&apos;)
++ if ( !CONTAINS(Source_Field__c, &apos;.&apos;) &amp;&amp; CONTAINS(lower(Source_Field_Type__c), &apos;object&apos;) , Source_Field_Type__c +br(), &apos;&apos;)
 + if (CONTAINS(lower(Target_Field_Type__c), &apos;object&apos;) , Target_Field_Type__c +br(), &apos;&apos;)
-+ if ( text(How_to_Summarize__c) = &apos;Count&apos; &amp;&amp;  Target_Field_Type__c != &apos;Currency&apos; &amp;&amp;  Target_Field_Type__c != &apos;Double&apos;, &apos;Target field type not compatible with Count action&apos;, 
- if (Source_Field_Type__c != Target_Field_Type__c, &quot;Source and Target field types don&apos;t match&quot;, &apos;&apos;))
++ if ( contains(text(How_to_Summarize__c), &apos;Count&apos;) = true &amp;&amp;  Target_Field_Type__c != &apos;Currency&apos; &amp;&amp;  Target_Field_Type__c != &apos;Double&apos;, &apos;Target field type not compatible with Count action&apos;, 
+ if ( !CONTAINS(Source_Field__c, &apos;.&apos;) &amp;&amp; Source_Field_Type__c != Target_Field_Type__c, &quot;Source and Target field types don&apos;t match&quot;, &apos;Not Ready - unknown reason&apos;))
 )</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <inlineHelpText>A summary of any issues with the configuration of the field.  If all is good, it&apos;ll show &quot;Ready&quot;</inlineHelpText>

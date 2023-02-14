@@ -10,5 +10,5 @@ private class DataSummaryFieldHandler_test {
 
         Data_Summary_Field__c dsf = new Data_Summary_Field__c(summary__c=ds.id, Target_Field__c='name', Source_Field__c='lastname');
         insert dsf;
-    }
+    } 
 }

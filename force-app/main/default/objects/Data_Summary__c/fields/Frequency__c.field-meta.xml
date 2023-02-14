@@ -68,6 +68,16 @@
                 <default>false</default>
                 <label>Last 12 Months</label>
             </value>
+            <value>
+                <fullName>Semi-Annually - Current</fullName>
+                <default>false</default>
+                <label>Semi-Annually - Current</label>
+            </value>
+            <value>
+                <fullName>Semi-Annually - Prevous</fullName>
+                <default>false</default>
+                <label>Semi-Annually - Prevous</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

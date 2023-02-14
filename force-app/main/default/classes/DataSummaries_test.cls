@@ -7,7 +7,7 @@
 */
 @isTest 
 public class DataSummaries_test {
-    public static string snapObj = 'asset';
+    public static string snapObj = 'asset'; 
 
     @isTest static void test_one(){
         // tests: echo, sum

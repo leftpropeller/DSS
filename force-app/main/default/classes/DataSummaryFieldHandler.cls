@@ -8,4 +8,4 @@ public with sharing class DataSummaryFieldHandler {
         dsf.Target_Field_Type__c = lpTools.getFieldType(dsf.Summarize_To_Object__c, dsf.Target_Field__c);
         dsf.Source_Field_Type__c = lpTools.getFieldType(dsf.Child_Object__c, dsf.Source_Field__c);
     }
-}
+} 

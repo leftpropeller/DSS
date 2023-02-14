@@ -26,7 +26,7 @@ public with sharing class lpTools_test {
 
 
     @isTest static void test_getters(){
-        integer fy = lpTools.fyStartMonth;
+        integer fy = lpTools.fyStartMonth; 
         boolean sand = lpTools.runningInSandbox;
         integer x = lpTools.runCounter(); 
     }

@@ -419,7 +419,7 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
     }
 
 
-    public object getValue(summaryTask st, sObject so, string field){
+    public object getValue(summaryTask st, sObject so, string field){ 
         string dot = '.';
         object val;
 
