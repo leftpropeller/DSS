@@ -45,7 +45,7 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
     public void finish(Database.BatchableContext BC) {
         if (counter > 10) return;
 
-        if ( st.pass == summaryTask.pass1 ){      
+        if ( st.ClearOutliers && st.pass == summaryTask.pass1 ){      
             st.pass = summaryTask.pass2;  // if it was running the first pass, start the second which processes the outliers.
             startNow(st);
         } 

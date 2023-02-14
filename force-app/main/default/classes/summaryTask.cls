@@ -108,6 +108,7 @@ global class summaryTask implements Schedulable {
     global integer batchSize = 50;
     global string pass = pass1;
     global boolean runSnapshots = true;
+    global boolean ClearOutliers = false;
     global boolean EchoMode = false;
     global boolean runningSpecifiedTask = false;
     global boolean specifiedSnapDate = false;
@@ -290,6 +291,8 @@ global class summaryTask implements Schedulable {
             specifiedSnapDate = true;
             snapDate = ds.Snapshot_As_Of_Date__c;
         }
+
+        if (ds.Clear_Outliers__c) ClearOutliers = true;
 
         fieldSpecs = loadFieldSpecs(ds);
 
@@ -518,7 +521,7 @@ global class summaryTask implements Schedulable {
 
     global string genTaskQuery(id taskID){
         // generates the query string used for querying tasks (data_summary_c records) to be processed
-        string q = 'SELECT id, Parent_Object__c, Child_Object__c, Child_Relationship_Name__c, Last_Completed__c, Snapshot_Object__c, Name,  Snapshot_Date_Field__c, Snapshot_mode__c, Echo_Mode__c, Relationship_Field_Child__c, Frequency__c, Where_Clause__c, Process_Data__c, Delay_Months__c, Delay_Days__c, batch_size__c, Relationship_Field_Snapshot__c, Snapshot_As_Of_Date__c, Date_Field_on_Child_Record__c, Task_Status__c, ( SELECT Source_Field__c, Target_Field__c, Reset_Value_After_Snapshot__c, Target_Field_Type__c, How_to_Summarize__c, How_to_Null__c, Specific_Value_to_Set__c FROM Data_Summary_Fields__r WHERE Field_Status__c = :ready) FROM Data_Summary__c  '; 
+        string q = 'SELECT id, Parent_Object__c, Child_Object__c, Child_Relationship_Name__c, Last_Completed__c, Snapshot_Object__c, Name,  Snapshot_Date_Field__c, Snapshot_mode__c, Echo_Mode__c, Relationship_Field_Child__c, Frequency__c, Where_Clause__c, Process_Data__c, Delay_Months__c, Delay_Days__c, batch_size__c, Relationship_Field_Snapshot__c, Snapshot_As_Of_Date__c, Date_Field_on_Child_Record__c, Task_Status__c, Clear_Outliers__c, ( SELECT Source_Field__c, Target_Field__c, Reset_Value_After_Snapshot__c, Target_Field_Type__c, How_to_Summarize__c, How_to_Null__c, Specific_Value_to_Set__c FROM Data_Summary_Fields__r WHERE Field_Status__c = :ready) FROM Data_Summary__c  '; 
         
         string filterClause = ' WHERE Task_Status__c = :ready  AND Last_Completed__c != TODAY AND LeftProp_DSS__Active_Fields__c > 0';
 

@@ -200,6 +200,7 @@ public class summaryTask_test {
         ds.Snapshot_Date_Field__c = 'closedate';
         ds.where_clause__c = 'lastname != null';
         ds.active__c = true;
+        ds.Clear_Outliers__c = true;
         insert ds;
         return ds.id;
     }
