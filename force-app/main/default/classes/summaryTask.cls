@@ -239,7 +239,7 @@ global class summaryTask implements Schedulable {
         // to make debugging easier, below saves the last used queries to hidden fields in the task
         if (!string.isblank(childQuery)) t.debug_Child_Query__c = childQuery.abbreviate(maxLen);
         if (!string.isblank(parentQuery)) t.debug_Parent_Query__c = parentQuery.abbreviate(maxLen);
-        if (!string.isblank(parentQuery)) t.debug_Parent_Filter_Query__c = parentFilterQuery.abbreviate(maxLen);
+        if (!string.isblank(parentFilterQuery)) t.debug_Parent_Filter_Query__c = parentFilterQuery.abbreviate(maxLen);
         if (!string.isblank(snapQuery)) t.debug_Snapshot_Query__c = snapQuery.abbreviate(maxLen);
         if (!string.isblank(outliersQuery)) t.debug_Outliers_Query__c = outliersQuery.abbreviate(maxLen);
         lpTools.saveRec('update', t, 'summaryTask.completedTask');
