@@ -168,6 +168,8 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
             string maxString = string.valueOf(max);
             string valString = string.valueOf(val);
 
+            if (string.isBlank(valString) || string.isBlank(maxString)) continue;
+
             if (valString.isNumeric() ){
                 // evaluate as a decimal 
                 if (max == null || decimal.valueOf(valString) > decimal.valueOf(maxString) ) max = val;
@@ -192,6 +194,8 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
             object val = getValue(st, child, sourceField);
             string minString = string.valueOf(min);
             string valString = string.valueOf(val);
+
+            if (string.isBlank(valString) || string.isBlank(minString)) continue;
 
             if (valString.isNumeric() ){
                 // evaluate as a decimal 
