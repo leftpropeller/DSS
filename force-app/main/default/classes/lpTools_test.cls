@@ -86,4 +86,8 @@ public with sharing class lpTools_test {
         lptools.saveList('dog', ll,'test_saveList');
         lptools.saveList('delete', ll,'test_saveList');
     }
+
+    @isTest static void checkNumeric_test() {
+        lptools.checkNumeric('-1,234.567');
+    }
 }
