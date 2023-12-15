@@ -153,7 +153,7 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         decimal sum = 0;
         for (sObject child : children) {
             string val = string.valueOf(getValue(st, child, sourceField));
-            if (!string.isblank(val) && val.replace('.', '').isNumeric()) sum += decimal.valueOf(val);
+            if (!string.isblank(val) && val.replace('.', '').replace(',', '').replace('-', '').isNumeric())  sum += decimal.valueOf(val);
         }
         saveSnap(parentID, f.target_field__c, sum);
     }
