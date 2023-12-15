@@ -153,7 +153,7 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
         decimal sum = 0;
         for (sObject child : children) {
             string val = string.valueOf(getValue(st, child, sourceField));
-            if (!string.isblank(val) && val.replace('.', '').replace(',', '').replace('-', '').isNumeric())  sum += decimal.valueOf(val);
+            if (!string.isblank(val) && lptools.checkNumeric(val) )  sum += decimal.valueOf(val);
         }
         saveSnap(parentID, f.target_field__c, sum);
     }
@@ -170,7 +170,7 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
 
             if (string.isBlank(valString) || string.isBlank(maxString)) continue;
 
-            if (valString.isNumeric() ){
+            if (lptools.checkNumeric(valString) ){
                 // evaluate as a decimal 
                 if (max == null || decimal.valueOf(valString) > decimal.valueOf(maxString) ) max = val;
             }
@@ -197,7 +197,7 @@ public class DataSummaries implements Database.Batchable<sObject>, Database.Stat
 
             if (string.isBlank(valString) || string.isBlank(minString)) continue;
 
-            if (valString.isNumeric() ){
+            if (lptools.checkNumeric(valString) ){
                 // evaluate as a decimal 
                 if (min == null || decimal.valueOf(valString) < decimal.valueOf(minString) ) min = val;
             }
