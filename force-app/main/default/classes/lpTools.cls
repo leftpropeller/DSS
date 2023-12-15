@@ -181,4 +181,11 @@ public with sharing class lpTools {
         if (msg.length() > maxReport) msg = msg.abbreviate(maxReport); // keeps it from overrunning the field 
 		return msg;
 	}
+
+        
+    public static boolean checkNumeric(string val){
+        boolean is = false;
+        if(val.replace('.', '').replace(',', '').replace('-', '').isNumeric()) is = true;
+        return is;
+    }
 }
